@@ -1,0 +1,2517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>차플게임</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 20px 10px 40px;
+    font-family: Arial, sans-serif;
+    background: #fff8e7;
+    text-align: center;
+    user-select: none;
+}
+
+h1 {
+    margin: 0 0 12px;
+}
+
+/* =========================
+   상단 정보
+========================= */
+
+#info {
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+
+#timer {
+    color: #e53935;
+    font-weight: bold;
+}
+
+#score {
+    font-weight: bold;
+}
+
+#combo {
+    color: #ff6f00;
+    font-weight: bold;
+}
+
+#multiplier {
+    color: #1976d2;
+    font-weight: bold;
+}
+
+#currentSum {
+    color: #1976d2;
+    font-weight: bold;
+}
+
+/* =========================
+   파란 불꽃
+========================= */
+
+.blue-fire {
+    display: inline-block;
+
+    filter:
+        hue-rotate(150deg)
+        saturate(2.5)
+        brightness(1.15);
+
+    animation:
+        blueFirePulse 0.65s
+        infinite alternate;
+}
+
+@keyframes blueFirePulse {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.2);
+    }
+}
+
+/* =========================
+   상태 메시지
+========================= */
+
+#status {
+    height: 28px;
+    margin-bottom: 7px;
+    font-weight: bold;
+    color: #555;
+}
+
+/* =========================
+   콤보 게이지
+========================= */
+
+#comboBarContainer {
+    width: 300px;
+    height: 8px;
+
+    margin:
+        0 auto 12px;
+
+    background: #ddd;
+
+    border-radius: 20px;
+
+    overflow: hidden;
+}
+
+#comboBar {
+    width: 0%;
+    height: 100%;
+
+    background:
+        linear-gradient(
+            90deg,
+            #ff9800,
+            #ff5722
+        );
+}
+
+/* =========================
+   게임판
+========================= */
+
+#gameWrapper {
+    position: relative;
+
+    width: max-content;
+    max-width: 100%;
+
+    margin: auto;
+}
+
+#game {
+    display: grid;
+
+    grid-template-columns:
+        repeat(17, 45px);
+
+    grid-template-rows:
+        repeat(10, 45px);
+
+    gap: 4px;
+
+    width: max-content;
+
+    padding: 15px;
+
+    background: #dcefc5;
+
+    border:
+        3px solid #8caf64;
+
+    border-radius: 15px;
+
+    cursor: crosshair;
+
+    transition:
+        box-shadow 0.2s,
+        border-color 0.2s;
+}
+
+/* =========================
+   사과
+========================= */
+
+.apple {
+    width: 45px;
+    height: 45px;
+
+    border-radius: 50%;
+
+    background:
+        radial-gradient(
+            circle at 35% 30%,
+            #ff7066,
+            #e53935 55%,
+            #b71c1c
+        );
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color: white;
+
+    font-size: 19px;
+    font-weight: bold;
+
+    border:
+        2px solid #c62828;
+
+    transition:
+        transform 0.1s,
+        filter 0.1s,
+        background 0.2s;
+}
+
+.apple.selected {
+    transform:
+        scale(1.08);
+
+    filter:
+        brightness(1.35)
+        drop-shadow(
+            0 0 5px #ffeb3b
+        );
+
+    border-color:
+        #ffeb3b;
+}
+
+.apple.removed {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* =========================
+   조합 힌트 과일
+========================= */
+
+.apple.hint {
+    background:
+        radial-gradient(
+            circle at 35% 30%,
+            #ffe082,
+            #ff9800 55%,
+            #e65100
+        );
+
+    border-color:
+        #ff6f00;
+
+    border-radius:
+        45% 55% 50% 50%;
+
+    box-shadow:
+        0 0 8px
+        rgba(255, 152, 0, 0.8);
+}
+
+/* =========================
+   드래그 선택 영역
+========================= */
+
+#selection {
+    position: fixed;
+
+    display: none;
+
+    border:
+        2px solid #2196f3;
+
+    background:
+        rgba(
+            33,
+            150,
+            243,
+            0.15
+        );
+
+    pointer-events: none;
+
+    z-index: 1000;
+}
+
+/* =========================
+   아이템
+========================= */
+
+#items {
+    margin-top: 20px;
+}
+
+#items h3 {
+    margin-bottom: 10px;
+}
+
+.itemButton {
+    margin: 5px;
+
+    min-width: 190px;
+
+    padding:
+        11px 16px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    color: white;
+
+    font-size: 15px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.1s,
+        opacity 0.1s;
+}
+
+.itemButton:not(:disabled):hover {
+    transform:
+        translateY(-2px);
+}
+
+#boostItem {
+    background:
+        #9c27b0;
+}
+
+#freezeItem {
+    background:
+        #2196f3;
+}
+
+#hintItem {
+    background:
+        #ff9800;
+}
+
+.itemButton:disabled {
+    background: #aaa;
+    cursor: default;
+    opacity: 0.65;
+}
+
+/* =========================
+   게임 종료 화면
+========================= */
+
+#overlay {
+    position: absolute;
+
+    inset: 0;
+
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            0.93
+        );
+
+    border-radius: 15px;
+
+    z-index: 500;
+}
+
+#overlayBox {
+    background: white;
+
+    padding:
+        30px 45px;
+
+    border:
+        2px solid #ddd;
+
+    border-radius: 15px;
+
+    box-shadow:
+        0 8px 30px
+        rgba(0, 0, 0, 0.15);
+}
+
+#overlayTitle {
+    margin:
+        0 0 12px;
+
+    font-size: 32px;
+}
+
+#finalScore {
+    margin: 10px;
+
+    color: #e53935;
+
+    font-size: 28px;
+    font-weight: bold;
+}
+
+#reward {
+    min-height: 24px;
+
+    margin-top: 12px;
+
+    color: #ff6f00;
+
+    font-size: 17px;
+    font-weight: bold;
+}
+
+#restartButton {
+    margin-top: 20px;
+
+    padding:
+        12px 30px;
+
+    border: none;
+
+    border-radius: 10px;
+
+    background: #4caf50;
+
+    color: white;
+
+    font-size: 18px;
+    font-weight: bold;
+
+    cursor: pointer;
+}
+
+/* =========================
+   ×2 부스트 효과
+========================= */
+
+body.comboBoost #game {
+    border-color:
+        #2196f3;
+
+    box-shadow:
+        0 0 20px
+        rgba(
+            33,
+            150,
+            243,
+            0.75
+        );
+}
+
+/* =========================
+   시간 동결 효과
+========================= */
+
+body.freeze #timer {
+    color: #2196f3;
+}
+
+body.freeze #game {
+    box-shadow:
+        0 0 18px
+        rgba(
+            33,
+            150,
+            243,
+            0.35
+        );
+}
+
+/* 작은 화면 스크롤 */
+
+@media (
+    max-width: 850px
+) {
+
+    #gameWrapper {
+        overflow-x: auto;
+    }
+
+}
+</style>
+</head>
+
+
+<body>
+
+<h1>
+    🍎 차플게임
+</h1>
+
+
+<div id="info">
+
+    ⏱️
+    <span id="timer">
+        120
+    </span>초
+
+    &nbsp; | &nbsp;
+
+    🍎
+    <span id="score">
+        0
+    </span>점
+
+    &nbsp; | &nbsp;
+
+    🔥
+    <span id="combo">
+        0
+    </span>콤보
+
+    &nbsp; | &nbsp;
+
+    <span id="boostIcon"></span>
+
+    <span id="multiplier">
+        ×1
+    </span>
+
+    &nbsp; | &nbsp;
+
+    선택 합
+    <span id="currentSum">
+        0
+    </span>
+
+</div>
+
+
+<div id="status">
+    사과판을 클릭하면 시작합니다!
+</div>
+
+
+<div id="comboBarContainer">
+
+    <div id="comboBar">
+    </div>
+
+</div>
+
+
+<div id="gameWrapper">
+
+    <div id="game">
+    </div>
+
+
+    <div id="overlay">
+
+        <div id="overlayBox">
+
+            <h2 id="overlayTitle">
+                게임 종료
+            </h2>
+
+            <div>
+                최종 점수
+            </div>
+
+            <div id="finalScore">
+                0점
+            </div>
+
+            <div id="reward">
+            </div>
+
+            <button id="restartButton">
+                다시하기
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div id="items">
+
+    <h3>
+        🎒 아이템
+    </h3>
+
+
+    <button
+        id="boostItem"
+        class="itemButton"
+    >
+        🍇 점수 ×1.5 / 10초
+        (<span id="boostCount">0</span>)
+    </button>
+
+
+    <button
+        id="freezeItem"
+        class="itemButton"
+    >
+        ❄️ 시간 동결 / 10초
+        (<span id="freezeCount">0</span>)
+    </button>
+
+
+    <button
+        id="hintItem"
+        class="itemButton"
+    >
+        🍊 조합 연결 / 10초
+        (<span id="hintCount">0</span>)
+    </button>
+
+</div>
+
+
+<div id="selection">
+</div>
+
+
+<script>
+
+/* =========================================
+   HTML 요소
+========================================= */
+
+const game =
+    document.getElementById(
+        "game"
+    );
+
+const selection =
+    document.getElementById(
+        "selection"
+    );
+
+const timerText =
+    document.getElementById(
+        "timer"
+    );
+
+const scoreText =
+    document.getElementById(
+        "score"
+    );
+
+const comboText =
+    document.getElementById(
+        "combo"
+    );
+
+const multiplierText =
+    document.getElementById(
+        "multiplier"
+    );
+
+const boostIcon =
+    document.getElementById(
+        "boostIcon"
+    );
+
+const currentSumText =
+    document.getElementById(
+        "currentSum"
+    );
+
+const statusText =
+    document.getElementById(
+        "status"
+    );
+
+const comboBar =
+    document.getElementById(
+        "comboBar"
+    );
+
+const overlay =
+    document.getElementById(
+        "overlay"
+    );
+
+const overlayTitle =
+    document.getElementById(
+        "overlayTitle"
+    );
+
+const finalScore =
+    document.getElementById(
+        "finalScore"
+    );
+
+const reward =
+    document.getElementById(
+        "reward"
+    );
+
+const restartButton =
+    document.getElementById(
+        "restartButton"
+    );
+
+const boostItem =
+    document.getElementById(
+        "boostItem"
+    );
+
+const freezeItem =
+    document.getElementById(
+        "freezeItem"
+    );
+
+const hintItem =
+    document.getElementById(
+        "hintItem"
+    );
+
+const boostCountText =
+    document.getElementById(
+        "boostCount"
+    );
+
+const freezeCountText =
+    document.getElementById(
+        "freezeCount"
+    );
+
+const hintCountText =
+    document.getElementById(
+        "hintCount"
+    );
+
+
+/* =========================================
+   기본 설정
+========================================= */
+
+const ROWS = 10;
+const COLS = 17;
+
+const START_TIME = 120;
+
+const COMBO_LIMIT =
+    2000;
+
+const COMBO_BOOST_TIME =
+    10000;
+
+const ITEM_TIME =
+    10000;
+
+
+/* =========================================
+   게임 상태
+========================================= */
+
+let apples = [];
+
+let dragging = false;
+
+let startX = 0;
+let startY = 0;
+
+let score = 0;
+
+let timeLeft =
+    START_TIME;
+
+let playing = false;
+
+let timerStarted = false;
+
+let timerInterval = null;
+
+
+/* 콤보 */
+
+let combo = 0;
+
+let lastSuccessTime = 0;
+
+
+/* 10콤보 ×2 */
+
+let comboBoostActive =
+    false;
+
+let comboBoostEnd = 0;
+
+
+/* ×1.5 아이템 */
+
+let itemBoostActive =
+    false;
+
+let itemBoostEnd = 0;
+
+
+/* 시간 동결 */
+
+let freezeActive =
+    false;
+
+let freezeEnd = 0;
+
+
+/* 조합 연결 */
+
+let hintActive =
+    false;
+
+let hintEnd = 0;
+
+
+/* 100점 보너스 */
+
+let nextTimeBonus =
+    100;
+
+
+/* 아이템 보유량 */
+
+let boostCount = 0;
+
+let freezeCount = 0;
+
+let hintCount = 0;
+
+
+/* =========================================
+   새 게임
+========================================= */
+
+function startGame() {
+
+    clearInterval(
+        timerInterval
+    );
+
+    timerInterval = null;
+
+    game.innerHTML = "";
+
+    apples = [];
+
+    score = 0;
+
+    timeLeft =
+        START_TIME;
+
+    combo = 0;
+
+    lastSuccessTime = 0;
+
+    nextTimeBonus = 100;
+
+    comboBoostActive =
+        false;
+
+    itemBoostActive =
+        false;
+
+    freezeActive =
+        false;
+
+    hintActive =
+        false;
+
+    playing = true;
+
+    timerStarted = false;
+
+    dragging = false;
+
+
+    scoreText.textContent =
+        "0";
+
+    timerText.textContent =
+        START_TIME;
+
+    comboText.textContent =
+        "0";
+
+    currentSumText.textContent =
+        "0";
+
+    multiplierText.textContent =
+        "×1";
+
+    boostIcon.innerHTML =
+        "";
+
+    comboBar.style.width =
+        "0%";
+
+    statusText.textContent =
+        "사과판을 클릭하면 시작합니다!";
+
+    overlay.style.display =
+        "none";
+
+    selection.style.display =
+        "none";
+
+    document.body.classList.remove(
+        "comboBoost",
+        "freeze"
+    );
+
+    updateItems();
+
+
+    /*
+       170개 사과 생성
+    */
+
+    for (
+        let i = 0;
+        i < ROWS * COLS;
+        i++
+    ) {
+
+        const apple =
+            document.createElement(
+                "div"
+            );
+
+        apple.className =
+            "apple";
+
+        const number =
+            Math.floor(
+                Math.random() * 9
+            ) + 1;
+
+        apple.textContent =
+            number;
+
+        apple.dataset.value =
+            number;
+
+        apple.dataset.row =
+            Math.floor(
+                i / COLS
+            );
+
+        apple.dataset.col =
+            i % COLS;
+
+        game.appendChild(
+            apple
+        );
+
+        apples.push(
+            apple
+        );
+    }
+
+
+    /*
+       혹시 처음부터
+       가능한 조합이 없는 판이면
+       다시 생성
+    */
+
+    if (
+        findValidRectangles().length
+        === 0
+    ) {
+
+        startGame();
+    }
+}
+
+
+/* =========================================
+   타이머 시작
+========================================= */
+
+function startTimer() {
+
+    if (timerStarted) {
+        return;
+    }
+
+    timerStarted = true;
+
+    statusText.textContent =
+        "게임 진행 중!";
+
+    timerInterval =
+        setInterval(
+            function() {
+
+                /*
+                   동결 중이면
+                   시간 감소 X
+                */
+
+                if (
+                    !freezeActive
+                ) {
+
+                    timeLeft--;
+                }
+
+
+                if (
+                    timeLeft <= 0
+                ) {
+
+                    timeLeft = 0;
+
+                    timerText.textContent =
+                        "0";
+
+                    endGame(
+                        false
+                    );
+
+                    return;
+                }
+
+
+                timerText.textContent =
+                    timeLeft;
+
+            },
+
+            1000
+        );
+}
+
+
+/* =========================================
+   현재 점수 배수
+========================================= */
+
+function getMultiplier() {
+
+    let multiplier = 1;
+
+    /*
+       콤보 ×2
+    */
+
+    if (
+        comboBoostActive
+    ) {
+
+        multiplier *= 2;
+    }
+
+    /*
+       아이템 ×1.5
+    */
+
+    if (
+        itemBoostActive
+    ) {
+
+        multiplier *= 1.5;
+    }
+
+    /*
+       둘 다 켜지면
+       2 × 1.5 = ×3
+    */
+
+    return multiplier;
+}
+
+
+/* =========================================
+   배수 표시
+========================================= */
+
+function updateMultiplier() {
+
+    const value =
+        getMultiplier();
+
+    multiplierText.textContent =
+        "×" + value;
+
+
+    /*
+       콤보 ×2 활성화 중이면
+       파란 불꽃 표시
+    */
+
+    if (
+        comboBoostActive
+    ) {
+
+        boostIcon.innerHTML =
+            '<span class="blue-fire">🔥</span>';
+
+    } else {
+
+        boostIcon.innerHTML =
+            "";
+    }
+}
+
+
+/* =========================================
+   10콤보 ×2 발동
+========================================= */
+
+function activateComboBoost() {
+
+    comboBoostActive =
+        true;
+
+    /*
+       이미 부스트 중에
+       또 10콤보를 달성하면
+       다시 10초로 갱신
+    */
+
+    comboBoostEnd =
+        Date.now()
+        +
+        COMBO_BOOST_TIME;
+
+    document.body.classList.add(
+        "comboBoost"
+    );
+
+    updateMultiplier();
+
+    statusText.innerHTML =
+        '<span class="blue-fire">🔥</span> ' +
+        '10콤보! 10초 동안 점수 ×2!';
+}
+
+
+/* =========================================
+   100점마다 +20초
+========================================= */
+
+function checkTimeBonus() {
+
+    let bonusCount = 0;
+
+    while (
+        score >=
+        nextTimeBonus
+    ) {
+
+        timeLeft += 20;
+
+        nextTimeBonus += 100;
+
+        bonusCount++;
+    }
+
+
+    if (
+        bonusCount > 0
+    ) {
+
+        timerText.textContent =
+            timeLeft;
+
+        statusText.textContent =
+            "⏱️ 시간 +" +
+            (
+                bonusCount * 20
+            ) +
+            "초!";
+    }
+}
+
+
+/* =========================================
+   아이템 표시
+========================================= */
+
+function updateItems() {
+
+    boostCountText.textContent =
+        boostCount;
+
+    freezeCountText.textContent =
+        freezeCount;
+
+    hintCountText.textContent =
+        hintCount;
+
+
+    boostItem.disabled =
+        (
+            boostCount <= 0 ||
+            !playing ||
+            !timerStarted
+        );
+
+    freezeItem.disabled =
+        (
+            freezeCount <= 0 ||
+            !playing ||
+            !timerStarted
+        );
+
+    hintItem.disabled =
+        (
+            hintCount <= 0 ||
+            !playing ||
+            !timerStarted
+        );
+}
+
+
+/* =========================================
+   ×1.5 아이템
+========================================= */
+
+boostItem.addEventListener(
+    "click",
+
+    function() {
+
+        if (
+            boostCount <= 0 ||
+            !playing ||
+            !timerStarted
+        ) {
+            return;
+        }
+
+
+        boostCount--;
+
+
+        itemBoostActive =
+            true;
+
+        /*
+           다시 사용하면
+           10초로 갱신
+        */
+
+        itemBoostEnd =
+            Date.now()
+            +
+            ITEM_TIME;
+
+
+        updateItems();
+
+        updateMultiplier();
+
+
+        statusText.textContent =
+            "🍇 10초 동안 점수 ×1.5!";
+    }
+);
+
+
+/* =========================================
+   시간 동결 아이템
+========================================= */
+
+freezeItem.addEventListener(
+    "click",
+
+    function() {
+
+        if (
+            freezeCount <= 0 ||
+            !playing ||
+            !timerStarted
+        ) {
+            return;
+        }
+
+
+        freezeCount--;
+
+
+        freezeActive =
+            true;
+
+
+        freezeEnd =
+            Date.now()
+            +
+            ITEM_TIME;
+
+
+        document.body.classList.add(
+            "freeze"
+        );
+
+
+        updateItems();
+
+
+        statusText.textContent =
+            "❄️ 제한시간 10초 동결!";
+    }
+);
+
+
+/* =========================================
+   조합 연결 아이템
+========================================= */
+
+hintItem.addEventListener(
+    "click",
+
+    function() {
+
+        if (
+            hintCount <= 0 ||
+            !playing ||
+            !timerStarted
+        ) {
+            return;
+        }
+
+
+        hintCount--;
+
+
+        hintActive =
+            true;
+
+
+        hintEnd =
+            Date.now()
+            +
+            ITEM_TIME;
+
+
+        updateItems();
+
+
+        showHints();
+
+
+        statusText.textContent =
+            "🍊 합이 10이 되는 조합을 표시합니다!";
+    }
+);
+
+
+/* =========================================
+   가능한 합 10 직사각형 찾기
+========================================= */
+
+function findValidRectangles() {
+
+    /*
+       현재 게임판 숫자
+
+       제거된 칸은 0
+    */
+
+    const grid =
+        Array.from(
+            {
+                length: ROWS
+            },
+
+            () =>
+                Array(
+                    COLS
+                ).fill(0)
+        );
+
+
+    for (
+        let r = 0;
+        r < ROWS;
+        r++
+    ) {
+
+        for (
+            let c = 0;
+            c < COLS;
+            c++
+        ) {
+
+            const apple =
+                apples[
+                    r * COLS + c
+                ];
+
+
+            if (
+                apple &&
+                !apple.classList.contains(
+                    "removed"
+                )
+            ) {
+
+                grid[r][c] =
+                    Number(
+                        apple.dataset.value
+                    );
+            }
+        }
+    }
+
+
+    /*
+       2차원 누적합
+    */
+
+    const prefix =
+        Array.from(
+            {
+                length:
+                    ROWS + 1
+            },
+
+            () =>
+                Array(
+                    COLS + 1
+                ).fill(0)
+        );
+
+
+    for (
+        let r = 0;
+        r < ROWS;
+        r++
+    ) {
+
+        for (
+            let c = 0;
+            c < COLS;
+            c++
+        ) {
+
+            prefix[
+                r + 1
+            ][
+                c + 1
+            ] =
+
+                grid[r][c]
+
+                +
+
+                prefix[
+                    r
+                ][
+                    c + 1
+                ]
+
+                +
+
+                prefix[
+                    r + 1
+                ][
+                    c
+                ]
+
+                -
+
+                prefix[
+                    r
+                ][
+                    c
+                ];
+        }
+    }
+
+
+    function rectangleSum(
+        top,
+        left,
+        bottom,
+        right
+    ) {
+
+        return (
+
+            prefix[
+                bottom + 1
+            ][
+                right + 1
+            ]
+
+            -
+
+            prefix[
+                top
+            ][
+                right + 1
+            ]
+
+            -
+
+            prefix[
+                bottom + 1
+            ][
+                left
+            ]
+
+            +
+
+            prefix[
+                top
+            ][
+                left
+            ]
+        );
+    }
+
+
+    const results = [];
+
+
+    /*
+       가능한 모든
+       직사각형 검사
+    */
+
+    for (
+        let top = 0;
+        top < ROWS;
+        top++
+    ) {
+
+        for (
+            let bottom = top;
+            bottom < ROWS;
+            bottom++
+        ) {
+
+            for (
+                let left = 0;
+                left < COLS;
+                left++
+            ) {
+
+                for (
+                    let right = left;
+                    right < COLS;
+                    right++
+                ) {
+
+                    const sum =
+                        rectangleSum(
+                            top,
+                            left,
+                            bottom,
+                            right
+                        );
+
+
+                    if (
+                        sum === 10
+                    ) {
+
+                        results.push({
+
+                            top:
+                                top,
+
+                            left:
+                                left,
+
+                            bottom:
+                                bottom,
+
+                            right:
+                                right
+
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+
+    return results;
+}
+
+
+/* =========================================
+   힌트 표시
+========================================= */
+
+function showHints() {
+
+    /*
+       기존 힌트 제거
+    */
+
+    apples.forEach(
+        function(apple) {
+
+            apple.classList.remove(
+                "hint"
+            );
+        }
+    );
+
+
+    const rectangles =
+        findValidRectangles();
+
+
+    /*
+       너무 많은 사과가
+       전부 변하는 것을 막기 위해
+       최대 3개 조합 표시
+    */
+
+    const count =
+        Math.min(
+            3,
+            rectangles.length
+        );
+
+
+    for (
+        let i = 0;
+        i < count;
+        i++
+    ) {
+
+        const rect =
+            rectangles[i];
+
+
+        for (
+            let r = rect.top;
+            r <= rect.bottom;
+            r++
+        ) {
+
+            for (
+                let c = rect.left;
+                c <= rect.right;
+                c++
+            ) {
+
+                const apple =
+                    apples[
+                        r * COLS + c
+                    ];
+
+
+                if (
+                    apple &&
+                    !apple.classList.contains(
+                        "removed"
+                    )
+                ) {
+
+                    apple.classList.add(
+                        "hint"
+                    );
+                }
+            }
+        }
+    }
+}
+
+
+/* =========================================
+   클리어 확인
+========================================= */
+
+function checkClear() {
+
+    const possible =
+        findValidRectangles();
+
+
+    /*
+       더 이상 합 10을
+       만들 수 없으면 클리어
+    */
+
+    if (
+        possible.length === 0
+    ) {
+
+        endGame(
+            true
+        );
+    }
+}
+
+
+/* =========================================
+   클리어 아이템 지급
+========================================= */
+
+function giveReward() {
+
+    const random =
+        Math.floor(
+            Math.random() * 3
+        );
+
+
+    if (
+        random === 0
+    ) {
+
+        boostCount++;
+
+        return (
+            "🍇 점수 ×1.5 아이템 획득!"
+        );
+    }
+
+
+    if (
+        random === 1
+    ) {
+
+        freezeCount++;
+
+        return (
+            "❄️ 시간 동결 아이템 획득!"
+        );
+    }
+
+
+    hintCount++;
+
+    return (
+        "🍊 조합 연결 아이템 획득!"
+    );
+}
+
+
+/* =========================================
+   게임 종료 / 클리어
+========================================= */
+
+function endGame(
+    cleared
+) {
+
+    if (
+        !playing
+    ) {
+        return;
+    }
+
+
+    playing = false;
+
+    dragging = false;
+
+
+    clearInterval(
+        timerInterval
+    );
+
+    timerInterval = null;
+
+
+    selection.style.display =
+        "none";
+
+
+    comboBar.style.width =
+        "0%";
+
+
+    apples.forEach(
+        function(apple) {
+
+            apple.classList.remove(
+                "selected"
+            );
+        }
+    );
+
+
+    currentSumText.textContent =
+        "0";
+
+
+    finalScore.textContent =
+        formatScore(score)
+        +
+        "점";
+
+
+    if (
+        cleared
+    ) {
+
+        overlayTitle.textContent =
+            "🎉 GAME CLEAR!";
+
+
+        const rewardText =
+            giveReward();
+
+
+        reward.textContent =
+            "🎁 " +
+            rewardText;
+
+
+        statusText.textContent =
+            "게임 클리어!";
+
+    } else {
+
+        overlayTitle.textContent =
+            "⏰ 게임 종료!";
+
+
+        reward.textContent =
+            "";
+
+
+        statusText.textContent =
+            "시간 종료!";
+    }
+
+
+    updateItems();
+
+
+    overlay.style.display =
+        "flex";
+}
+
+
+/* =========================================
+   점수 표시
+========================================= */
+
+function formatScore(
+    value
+) {
+
+    /*
+       1.5배 때문에
+       .5 점이 생길 수 있음
+
+       예:
+       3점 × 1.5 = 4.5점
+    */
+
+    if (
+        Number.isInteger(
+            value
+        )
+    ) {
+
+        return value;
+    }
+
+
+    return value.toFixed(1);
+}
+
+
+/* =========================================
+   드래그 시작
+========================================= */
+
+game.addEventListener(
+    "mousedown",
+
+    function(e) {
+
+        if (
+            !playing
+        ) {
+            return;
+        }
+
+
+        if (
+            e.button !== 0
+        ) {
+            return;
+        }
+
+
+        /*
+           첫 클릭 순간
+           타이머 시작
+        */
+
+        if (
+            !timerStarted
+        ) {
+
+            startTimer();
+
+            updateItems();
+        }
+
+
+        dragging =
+            true;
+
+
+        startX =
+            e.clientX;
+
+        startY =
+            e.clientY;
+
+
+        selection.style.display =
+            "block";
+
+
+        selection.style.left =
+            startX +
+            "px";
+
+        selection.style.top =
+            startY +
+            "px";
+
+        selection.style.width =
+            "0px";
+
+        selection.style.height =
+            "0px";
+
+
+        e.preventDefault();
+    }
+);
+
+
+/* =========================================
+   드래그 중
+========================================= */
+
+document.addEventListener(
+    "mousemove",
+
+    function(e) {
+
+        if (
+            !dragging ||
+            !playing
+        ) {
+
+            return;
+        }
+
+
+        const x =
+            Math.min(
+                startX,
+                e.clientX
+            );
+
+
+        const y =
+            Math.min(
+                startY,
+                e.clientY
+            );
+
+
+        const width =
+            Math.abs(
+                e.clientX -
+                startX
+            );
+
+
+        const height =
+            Math.abs(
+                e.clientY -
+                startY
+            );
+
+
+        selection.style.left =
+            x +
+            "px";
+
+        selection.style.top =
+            y +
+            "px";
+
+        selection.style.width =
+            width +
+            "px";
+
+        selection.style.height =
+            height +
+            "px";
+
+
+        const right =
+            x +
+            width;
+
+
+        const bottom =
+            y +
+            height;
+
+
+        let currentSum = 0;
+
+
+        apples.forEach(
+            function(apple) {
+
+                if (
+                    apple.classList.contains(
+                        "removed"
+                    )
+                ) {
+
+                    return;
+                }
+
+
+                const rect =
+                    apple.getBoundingClientRect();
+
+
+                /*
+                   선택 영역과 사과가
+                   조금이라도 겹치면 선택
+                */
+
+                const touching =
+
+                    rect.right >= x
+
+                    &&
+
+                    rect.left <= right
+
+                    &&
+
+                    rect.bottom >= y
+
+                    &&
+
+                    rect.top <= bottom;
+
+
+                if (
+                    touching
+                ) {
+
+                    apple.classList.add(
+                        "selected"
+                    );
+
+
+                    currentSum +=
+                        Number(
+                            apple.dataset.value
+                        );
+
+                } else {
+
+                    apple.classList.remove(
+                        "selected"
+                    );
+                }
+            }
+        );
+
+
+        currentSumText.textContent =
+            currentSum;
+    }
+);
+
+
+/* =========================================
+   드래그 종료
+========================================= */
+
+document.addEventListener(
+    "mouseup",
+
+    function() {
+
+        if (
+            !dragging ||
+            !playing
+        ) {
+
+            return;
+        }
+
+
+        dragging =
+            false;
+
+
+        selection.style.display =
+            "none";
+
+
+        const selected =
+            apples.filter(
+                function(apple) {
+
+                    return (
+
+                        apple.classList.contains(
+                            "selected"
+                        )
+
+                        &&
+
+                        !apple.classList.contains(
+                            "removed"
+                        )
+                    );
+                }
+            );
+
+
+        let sum = 0;
+
+
+        selected.forEach(
+            function(apple) {
+
+                sum +=
+                    Number(
+                        apple.dataset.value
+                    );
+            }
+        );
+
+
+        /* =================================
+           성공
+        ================================= */
+
+        if (
+            sum === 10 &&
+            selected.length > 0
+        ) {
+
+            const now =
+                Date.now();
+
+
+            /*
+               이전 성공 후
+               2초 이내라면 콤보 증가
+            */
+
+            if (
+
+                lastSuccessTime !== 0
+
+                &&
+
+                now -
+                lastSuccessTime
+                <=
+                COMBO_LIMIT
+
+            ) {
+
+                combo++;
+
+            } else {
+
+                combo = 1;
+            }
+
+
+            lastSuccessTime =
+                now;
+
+
+            comboText.textContent =
+                combo;
+
+
+            /*
+               사과 제거
+            */
+
+            selected.forEach(
+                function(apple) {
+
+                    apple.classList.remove(
+                        "selected"
+                    );
+
+                    apple.classList.remove(
+                        "hint"
+                    );
+
+                    apple.classList.add(
+                        "removed"
+                    );
+                }
+            );
+
+
+            /*
+               점수 계산
+
+               사과 1개 제거 =
+               기본 1점
+            */
+
+            const multiplier =
+                getMultiplier();
+
+
+            const earned =
+                selected.length
+                *
+                multiplier;
+
+
+            score +=
+                earned;
+
+
+            scoreText.textContent =
+                formatScore(
+                    score
+                );
+
+
+            /*
+               10, 20, 30...
+               콤보 달성 시 ×2
+
+               현재 성공 점수 계산 후
+               부스트가 시작됨
+            */
+
+            if (
+                combo % 10 === 0
+            ) {
+
+                activateComboBoost();
+
+            } else {
+
+                statusText.textContent =
+                    "🔥 " +
+                    combo +
+                    "콤보! +" +
+                    formatScore(
+                        earned
+                    ) +
+                    "점";
+            }
+
+
+            /*
+               100점마다
+               +20초
+            */
+
+            checkTimeBonus();
+
+
+            /*
+               힌트가 켜져 있다면
+               현재 남은 사과 기준으로
+               다시 계산
+            */
+
+            if (
+                hintActive
+            ) {
+
+                showHints();
+            }
+
+
+            /*
+               더 이상 가능한 조합이
+               있는지 검사
+            */
+
+            checkClear();
+
+        }
+
+
+        /* =================================
+           실패
+        ================================= */
+
+        else {
+
+            selected.forEach(
+                function(apple) {
+
+                    apple.classList.remove(
+                        "selected"
+                    );
+                }
+            );
+        }
+
+
+        currentSumText.textContent =
+            "0";
+    }
+);
+
+
+/* =========================================
+   상태 업데이트
+========================================= */
+
+setInterval(
+    function() {
+
+        if (
+            !playing
+        ) {
+
+            return;
+        }
+
+
+        const now =
+            Date.now();
+
+
+        /* =================================
+           콤보 2초
+        ================================= */
+
+        if (
+            combo > 0 &&
+            lastSuccessTime > 0
+        ) {
+
+            const passed =
+                now -
+                lastSuccessTime;
+
+
+            const remaining =
+                Math.max(
+                    0,
+                    COMBO_LIMIT -
+                    passed
+                );
+
+
+            const percent =
+                (
+                    remaining /
+                    COMBO_LIMIT
+                )
+                *
+                100;
+
+
+            comboBar.style.width =
+                percent +
+                "%";
+
+
+            if (
+                passed >
+                COMBO_LIMIT
+            ) {
+
+                combo = 0;
+
+                lastSuccessTime = 0;
+
+
+                comboText.textContent =
+                    "0";
+
+
+                comboBar.style.width =
+                    "0%";
+            }
+        }
+
+
+        /* =================================
+           파란 불꽃 ×2 종료
+        ================================= */
+
+        if (
+            comboBoostActive &&
+            now >= comboBoostEnd
+        ) {
+
+            comboBoostActive =
+                false;
+
+
+            document.body.classList.remove(
+                "comboBoost"
+            );
+
+
+            updateMultiplier();
+        }
+
+
+        /* =================================
+           ×1.5 아이템 종료
+        ================================= */
+
+        if (
+            itemBoostActive &&
+            now >= itemBoostEnd
+        ) {
+
+            itemBoostActive =
+                false;
+
+
+            updateMultiplier();
+        }
+
+
+        /* =================================
+           시간 동결 종료
+        ================================= */
+
+        if (
+            freezeActive &&
+            now >= freezeEnd
+        ) {
+
+            freezeActive =
+                false;
+
+
+            document.body.classList.remove(
+                "freeze"
+            );
+
+
+            statusText.textContent =
+                "❄️ 시간 동결 종료!";
+        }
+
+
+        /* =================================
+           조합 연결 종료
+        ================================= */
+
+        if (
+            hintActive &&
+            now >= hintEnd
+        ) {
+
+            hintActive =
+                false;
+
+
+            apples.forEach(
+                function(apple) {
+
+                    apple.classList.remove(
+                        "hint"
+                    );
+                }
+            );
+
+
+            statusText.textContent =
+                "🍊 조합 연결 종료!";
+        }
+
+
+    },
+
+    50
+);
+
+
+/* =========================================
+   다시하기
+========================================= */
+
+restartButton.addEventListener(
+    "click",
+
+    function() {
+
+        /*
+           아이템은 유지
+
+           점수/시간/콤보/게임판만
+           새로 시작
+        */
+
+        startGame();
+    }
+);
+
+
+/* =========================================
+   최초 실행
+========================================= */
+
+startGame();
+
+</script>
+
+</body>
+</html>
