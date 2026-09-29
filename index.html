@@ -172,36 +172,37 @@ h1 {
 ========================= */
 
 .apple {
+    position: relative;
+    isolation: isolate;
     width: 45px;
     height: 45px;
-
-    border-radius: 50%;
-
-    background:
-        radial-gradient(
-            circle at 35% 30%,
-            #ff7066,
-            #e53935 55%,
-            #b71c1c
-        );
-
     display: flex;
-
     align-items: center;
     justify-content: center;
-
+    padding-top: 8px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
     color: white;
-
     font-size: 19px;
     font-weight: bold;
-
-    border:
-        2px solid #c62828;
-
-    transition:
-        transform 0.1s,
-        filter 0.1s,
-        background 0.2s;
+    text-shadow: 0 1px 3px #702020, 0 0 2px #702020;
+    transition: transform 0.1s, filter 0.1s;
+}
+.apple::before {
+    content: "🍎";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    font-size: 41px;
+    font-weight: normal;
+    line-height: 1;
+    text-shadow: none;
+    pointer-events: none;
 }
 
 .apple.selected {
@@ -228,23 +229,13 @@ h1 {
 ========================= */
 
 .apple.hint {
-    background:
-        radial-gradient(
-            circle at 35% 30%,
-            #ffe082,
-            #ff9800 55%,
-            #e65100
-        );
-
-    border-color:
-        #ff6f00;
-
-    border-radius:
-        45% 55% 50% 50%;
-
-    box-shadow:
-        0 0 8px
-        rgba(255, 152, 0, 0.8);
+    filter: drop-shadow(0 0 4px #ff9800);
+}
+.apple.hint::before {
+    content: "🍊";
+}
+.apple.hint.selected {
+    filter: brightness(1.35) drop-shadow(0 0 5px #ffeb3b);
 }
 
 /* =========================
