@@ -723,9 +723,15 @@ const COLS = 17;
 
 const START_TIME = 120;
 
-// After each success: 10s at combo 1, decreasing by 1s to a 2s minimum.
+// Time allowed after the current combo: 1–10, 11–20, then fixed.
 function getComboLimit(currentCombo = combo) {
-    return Math.max(2000, 10000 - Math.max(0, currentCombo - 1) * 1000);
+    if (currentCombo <= 10) {
+        return Math.max(2000, 10000 - Math.max(0, currentCombo - 1) * 1000);
+    }
+    if (currentCombo <= 20) {
+        return 5000 - (currentCombo - 11) * (3000 / 9);
+    }
+    return 2000;
 }
 
 const COMBO_BOOST_TIME =
