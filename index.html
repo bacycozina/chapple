@@ -495,7 +495,7 @@ body.freeze #game {
 </div>
 <p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
-    <h2 id="helpTitle">🍎 차플게임 플레이 방법</h2>
+    <h2 id="helpTitle" tabindex="-1" autofocus>🍎 차플게임 플레이 방법</h2>
     <p>사과의 숫자를 더해 <strong>10</strong>을 만들고, 콤보를 이어 높은 점수에 도전하세요!</p>
     <h3>🖱️ 이렇게 플레이해요</h3>
     <ol>
@@ -532,7 +532,7 @@ body.freeze #game {
     <h3>🔄 게임 종료와 다시하기</h3>
     <p>제한시간이 0이면 게임이 끝나요. 다시하기는 점수·시간·콤보·게임판을 초기화하지만 보유 아이템은 유지해요. <strong>페이지를 새로고침하거나 닫으면 보유 아이템도 초기화돼요.</strong></p>
     <p class="helpNote">도움말을 읽는 것만으로는 게임이 시작되지 않아요. 다만 <strong>이미 시작한 게임은 도움말을 열어도 시간이 계속 흘러요.</strong></p>
-    <button id="helpClose" type="button" autofocus>알겠어요</button>
+    <button id="helpClose" type="button">알겠어요</button>
 </dialog>
 
 
