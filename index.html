@@ -463,15 +463,77 @@ body.freeze #game {
     }
 
 }
+
+/* 플레이 방법 */
+.titleRow { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; }
+.titleRow h1 { margin: 0; }
+#helpButton { width: 32px; height: 32px; border: 2px solid #73964d; border-radius: 50%; background: white; color: #43682d; font-size: 22px; font-weight: bold; cursor: pointer; }
+#helpButton:hover { background: #eaf5df; }
+#helpButton:focus-visible, #helpClose:focus-visible { outline: 3px solid #2196f3; outline-offset: 3px; }
+.startTip { margin: 0 0 12px; color: #61734c; font-size: 14px; }
+#helpDialog { width: min(560px, calc(100% - 28px)); max-height: 85vh; padding: 24px; border: 2px solid #9aba75; border-radius: 20px; background: #fffdf5; color: #35452d; text-align: left; user-select: text; box-shadow: 0 16px 60px #0003; }
+#helpDialog::backdrop { background: #20321d88; }
+#helpDialog h2 { margin: 0 0 8px; font-size: 24px; }
+#helpDialog h3 { margin: 22px 0 8px; font-size: 17px; color: #537c34; }
+#helpDialog p, #helpDialog li { line-height: 1.65; font-size: 15px; }
+#helpDialog ul, #helpDialog ol { padding-left: 22px; margin: 8px 0; }
+#helpDialog li + li { margin-top: 6px; }
+#helpDialog table { width: 100%; border-collapse: collapse; font-size: 14px; }
+#helpDialog th, #helpDialog td { padding: 9px; border-bottom: 1px solid #dce8cb; text-align: left; line-height: 1.5; }
+.helpNote { background: #eef5e3; padding: 12px; border-radius: 10px; }
+#helpClose { display: block; width: 100%; margin-top: 20px; padding: 12px; border: 0; border-radius: 12px; background: #557f39; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
+
 </style>
 </head>
 
 
 <body>
 
-<h1>
-    🍎 차플게임
-</h1>
+<div class="titleRow">
+    <h1>🍎 차플게임</h1>
+    <button id="helpButton" type="button" aria-label="플레이 방법과 규칙 보기" aria-haspopup="dialog" aria-controls="helpDialog">?</button>
+</div>
+<p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
+<dialog id="helpDialog" aria-labelledby="helpTitle">
+    <h2 id="helpTitle">🍎 차플게임 플레이 방법</h2>
+    <p>사과의 숫자를 더해 <strong>10</strong>을 만들고, 콤보를 이어 높은 점수에 도전하세요!</p>
+    <h3>🖱️ 이렇게 플레이해요</h3>
+    <ol>
+        <li>사과판을 처음 클릭하면 <strong>120초 타이머</strong>가 시작돼요. 시작 전에는 천천히 살펴봐도 돼요.</li>
+        <li>마우스 왼쪽 버튼을 누른 채 드래그해 <strong>직사각형</strong>으로 사과를 선택하세요. 선택 영역에 조금이라도 닿은 사과가 포함돼요.</li>
+        <li>위쪽의 <strong>선택 합</strong>이 10일 때 마우스를 놓으면 사과가 사라져요. 예: 3 + 7, 2 + 3 + 5.</li>
+        <li>빈칸을 포함해 선택해도 돼요. 합이 10이 아니면 사과는 그대로이고 점수는 깎이지 않아요.</li>
+    </ol>
+    <h3>🔥 콤보는 빠르게 이어가요</h3>
+    <p>한 번 성공하면 1콤보! 아래 시간 안에 다시 성공하면 콤보가 올라가요. 게이지는 <strong>다음 성공까지 남은 시간</strong>이에요.</p>
+    <table>
+        <thead><tr><th scope="col">현재 콤보</th><th scope="col">다음 성공까지 제한시간</th></tr></thead>
+        <tbody>
+            <tr><td>1~10콤보</td><td>10초부터 1콤보마다 1초씩 감소<br>9·10콤보는 2초</td></tr>
+            <tr><td>11~20콤보</td><td>11콤보에서 다시 5초!<br>매 콤보 약 0.33초씩 줄어 20콤보는 2초</td></tr>
+            <tr><td>21콤보 이후</td><td>2초 고정</td></tr>
+        </tbody>
+    </table>
+    <p>제한시간이 지나면 콤보가 0으로 돌아가요. 실패한 선택은 콤보를 바로 끊지는 않지만 시간은 계속 흘러요.</p>
+    <h3>✨ 점수와 보너스</h3>
+    <ul>
+        <li><strong>사과 1개 제거 = 기본 1점.</strong> 숫자의 합이 점수가 되는 것은 아니에요.</li>
+        <li><strong>10·20·30…콤보마다 파란 불꽃!</strong> 달성한 선택의 점수 계산 후, 10초 동안 점수가 ×2가 돼요. 다시 달성하면 남은 시간이 10초로 갱신돼요.</li>
+        <li><strong>100점마다 제한시간 +20초.</strong> 200점, 300점에서도 계속 받아요.</li>
+    </ul>
+    <h3>🎒 클리어하면 아이템을 받아요</h3>
+    <p>남은 사과로 만들 수 있는 <strong>합 10 직사각형이 하나도 없으면 클리어</strong>예요. 사과를 모두 없앨 필요는 없어요! 클리어하면 아래 아이템 중 하나를 무작위로 1개 받아요.</p>
+    <ul>
+        <li><strong>🍇 점수 ×1.5:</strong> 10초 동안 획득 점수 1.5배. 파란 불꽃과 겹치면 <strong>×3</strong>! 0.5점 단위 점수도 생겨요.</li>
+        <li><strong>❄️ 시간 동결:</strong> 10초 동안 게임 제한시간만 멈춰요. 콤보와 다른 아이템의 시간은 계속 흘러요.</li>
+        <li><strong>🍊 조합 연결:</strong> 10초 동안 가능한 조합을 최대 3개까지 주황색 과일로 표시해요. 모두 한꺼번에 선택하지 말고, 선택 합 10을 확인하세요.</li>
+    </ul>
+    <p>아이템은 보유한 상태에서 게임을 시작한 뒤 버튼을 눌러 사용해요. 같은 아이템을 다시 쓰면 1개를 소모하고 효과가 10초로 갱신돼요.</p>
+    <h3>🔄 게임 종료와 다시하기</h3>
+    <p>제한시간이 0이면 게임이 끝나요. 다시하기는 점수·시간·콤보·게임판을 초기화하지만 보유 아이템은 유지해요. <strong>페이지를 새로고침하거나 닫으면 보유 아이템도 초기화돼요.</strong></p>
+    <p class="helpNote">도움말을 읽는 것만으로는 게임이 시작되지 않아요. 다만 <strong>이미 시작한 게임은 도움말을 열어도 시간이 계속 흘러요.</strong></p>
+    <button id="helpClose" type="button" autofocus>알겠어요</button>
+</dialog>
 
 
 <div id="info">
@@ -2509,6 +2571,15 @@ restartButton.addEventListener(
 ========================================= */
 
 startGame();
+
+
+const helpDialog = document.getElementById("helpDialog");
+document.getElementById("helpButton").addEventListener("click", () => {
+    helpDialog.showModal();
+});
+document.getElementById("helpClose").addEventListener("click", () => {
+    helpDialog.close();
+});
 
 </script>
 
