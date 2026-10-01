@@ -179,7 +179,8 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-top: 8px;
+    padding: 0;
+    line-height: 1;
     border: none;
     border-radius: 0;
     background: transparent;
@@ -497,7 +498,7 @@ body.freeze #game {
         grid-template-rows: repeat(10, var(--cell));
         gap: 2px; width: 100%; padding: 10px; border-width: 2px;
     }
-    .apple { width: var(--cell); height: var(--cell); font-size: clamp(10px, 2.5vw, 19px); padding-top: calc(var(--cell) * .16); }
+    .apple { width: var(--cell); height: var(--cell); font-size: clamp(10px, 2.5vw, 19px); padding: 0; line-height: 1; }
     .apple::before { font-size: calc(var(--cell) * .95); }
     #info { font-size: 14px; line-height: 1.9; }
     #status { height: auto; min-height: 28px; font-size: 14px; }
