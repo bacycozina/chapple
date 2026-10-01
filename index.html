@@ -537,6 +537,14 @@ body { padding-right: 68px; }
     body { padding-right: 68px; }
     #game { --cell: min(45px, calc((100vw - 104px) / 17 - 2px)); }
 }
+
+/* Touch gestures beginning inside the board belong only to the game. */
+#gameWrapper, #game, #game .apple {
+    touch-action: none;
+    overscroll-behavior: none;
+    -webkit-touch-callout: none;
+}
+
 </style>
 </head>
 
@@ -2551,6 +2559,17 @@ function updateEffects() {
 setInterval(updateEffects,50);
 updateRecord();
 updateEffects();
+
+
+/* Also suppress native touch scrolling on mobile browsers while leaving
+   all gestures that start outside the board available for page scrolling. */
+const boardTouchSurface = document.getElementById("gameWrapper");
+function preventBoardScroll(event) {
+    if (event.target.closest("button")) return;
+    if (event.cancelable) event.preventDefault();
+}
+boardTouchSurface.addEventListener("touchstart", preventBoardScroll, { passive: false });
+boardTouchSurface.addEventListener("touchmove", preventBoardScroll, { passive: false });
 
 </script>
 
