@@ -511,6 +511,32 @@ body.freeze #game {
     #restartButton { margin-top: 10px; padding: 10px 24px; }
     .mobileTip { display: block; color: #61734c; font-size: 12px; margin: 8px 0; }
 }
+
+[hidden] { display: none !important; }
+#personalRecord { margin: 6px 0; color: #876620; font-size: 15px; }
+#recordNotice { color: #c35a00; font-weight: bold; }
+#giftNotice { color: #82509b; font-size: 13px; margin: 5px auto; max-width: 800px; }
+#timeWarning { color: #df202f; display: inline-block; font-size: 26px; animation: dangerPulse .65s infinite alternate; }
+.timeUrgent #timer { color: #d21626; }
+@keyframes dangerPulse { to { transform: scale(1.18); opacity: .55; } }
+#effects { width: min(360px,95%); margin: 0 auto 12px; }
+.effectRow { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px; margin:7px 0; font-size:13px; color:#9c27b0; }
+.effectTrack { width:100%; height:5px; background:#e4dfda; border-radius:8px; overflow:hidden; }
+.effectFill { height:100%; background:currentColor; }
+.comboEffect { color:#1976d2; } .freezeEffect { color:#098bab; } .hintEffect { color:#dc8109; }
+#hintFloat { position:absolute; right:8px; top:-28px; z-index:2; font-size:26px; pointer-events:none; animation:floatFruit 1.5s ease-in-out infinite alternate; }
+@keyframes floatFruit { to { transform:translateY(-8px) rotate(12deg); } }
+@media(prefers-reduced-motion:reduce) { #hintFloat,#timeWarning { animation:none; } }
+
+/* Compact item dock stays within easy reach without covering the board. */
+body { padding-right: 68px; }
+#items { position: fixed; right: 6px; top: 50%; transform: translateY(-50%); z-index: 600; margin: 0; display: flex; flex-direction: column; gap: 6px; width: 52px; padding: 5px 2px; border-radius: 14px; background: #fffdf4eF; box-shadow: 0 2px 10px #39542525; }
+#items .itemDockTitle { margin: 0 0 2px; font-size: 10px; color: #65764e; }
+#items .itemButton { width: 48px; min-width: 0; min-height: 44px; margin: 0; padding: 5px 1px; font-size: 14px; border-radius: 10px; }
+@media(max-width:900px) {
+    body { padding-right: 68px; }
+    #game { --cell: min(45px, calc((100vw - 104px) / 17 - 2px)); }
+}
 </style>
 </head>
 
@@ -527,7 +553,8 @@ body.freeze #game {
     <p>🖱️ 손가락이나 마우스로 드래그해서 숫자 <strong>10</strong>을 만들어주세요.</p>
     <p>🔥 <strong>10콤보</strong> 달성 시 부스트 발동!</p>
     <p>⏱️ <strong>100점마다 20초</strong>가 추가돼요!</p>
-    <p>🎁 <strong>클리어 시 아이템</strong> 지급!</p>
+    <p>🎁 <strong>100점마다 아이템 1개</strong> 즉시 지급!</p>
+    <p>🍎 조합이 없으면 새 사과판! <strong>시간이 끝날 때까지</strong> 계속해요.</p>
     <button id="helpClose" type="button">알겠어요</button>
 </dialog>
 
@@ -535,7 +562,8 @@ body.freeze #game {
 <div id="info">
 
     ⏱️
-    <span id="timer">
+    <span id="freezeBadge" hidden aria-label="시간 동결 중">🧊</span><span id="timeWarning" hidden role="status" aria-label="남은 시간 10초 이하">⚠</span>
+<span id="timer">
         120
     </span>초
 
@@ -571,6 +599,7 @@ body.freeze #game {
 </div>
 
 
+<div id="personalRecord">🏆 내 최고기록 <strong id="bestScore">0</strong>점 <span id="recordNotice" role="status"></span></div><div id="giftNotice" role="status"></div>
 <div id="status">
     사과판을 터치하거나 클릭하면 시작합니다!
 </div>
@@ -584,7 +613,8 @@ body.freeze #game {
 </div>
 
 
-<div id="gameWrapper">
+<div id="effects" aria-label="효과 남은 시간"><div id="comboEffect" class="effectRow comboEffect" hidden><span>🔥 콤보 ×2</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="boostEffect" class="effectRow boostEffect" hidden><span>🍇 점수 ×1.5</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="freezeEffect" class="effectRow freezeEffect" hidden><span>🧊 시간 동결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="hintEffect" class="effectRow hintEffect" hidden><span>🍊 조합 연결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div></div>
+<div id="gameWrapper"><div id="hintFloat" hidden aria-hidden="true">🍊</div>
 
     <div id="game">
     </div>
@@ -623,34 +653,32 @@ body.freeze #game {
 <p class="mobileTip">손가락으로 드래그해 합 10을 만드세요. 가로로 돌리면 사과가 더 크게 보여요.</p>
 <div id="items">
 
-    <h3>
-        🎒 아이템
-    </h3>
+    <h3 class="itemDockTitle">아이템</h3>
 
 
     <button
-        id="boostItem"
+        id="boostItem" aria-label="점수 1.5배, 10초" title="점수 1.5배, 10초"
         class="itemButton"
     >
-        🍇 점수 ×1.5 / 10초
+        🍇
         (<span id="boostCount">0</span>)
     </button>
 
 
     <button
-        id="freezeItem"
+        id="freezeItem" aria-label="시간 동결, 10초" title="시간 동결, 10초"
         class="itemButton"
     >
-        ❄️ 시간 동결 / 10초
+        🧊
         (<span id="freezeCount">0</span>)
     </button>
 
 
     <button
-        id="hintItem"
+        id="hintItem" aria-label="조합 힌트, 10초" title="조합 힌트, 10초"
         class="itemButton"
     >
-        🍊 조합 연결 / 10초
+        🍊
         (<span id="hintCount">0</span>)
     </button>
 
@@ -804,6 +832,10 @@ const ITEM_TIME =
    게임 상태
 ========================================= */
 
+let bestScore = 0;
+try { const saved = Number(localStorage.getItem("chapple-best-score")); if (Number.isFinite(saved) && saved > 0) bestScore = saved; } catch {}
+let runStartBest = bestScore;
+let recordAnnounced = false;
 let apples = [];
 
 let dragging = false;
@@ -962,10 +994,16 @@ function startGame() {
     updateItems();
 
 
-    /*
-       170개 사과 생성
-    */
-
+    buildBoard();
+    recordAnnounced = false;
+    runStartBest = bestScore;
+    document.getElementById("recordNotice").textContent = "";
+    document.getElementById("giftNotice").textContent = "";
+    updateEffects();
+}
+function buildBoard() {
+    cancelSelection();
+    game.innerHTML = ""; apples = [];
     for (
         let i = 0;
         i < ROWS * COLS;
@@ -1009,19 +1047,12 @@ function startGame() {
     }
 
 
-    /*
-       혹시 처음부터
-       가능한 조합이 없는 판이면
-       다시 생성
-    */
 
-    if (
-        findValidRectangles().length
-        === 0
-    ) {
-
-        startGame();
+    if (!findValidRectangles().length) {
+        apples[0].dataset.value = 1; apples[0].textContent = "1";
+        apples[1].dataset.value = 9; apples[1].textContent = "9";
     }
+    if (hintActive) showHints();
 }
 
 
@@ -1193,36 +1224,16 @@ function activateComboBoost() {
 ========================================= */
 
 function checkTimeBonus() {
-
-    let bonusCount = 0;
-
-    while (
-        score >=
-        nextTimeBonus
-    ) {
-
-        timeLeft += 20;
-
-        nextTimeBonus += 100;
-
-        bonusCount++;
+    const gifts = [];
+    while (score >= nextTimeBonus) {
+        timeLeft += 20; nextTimeBonus += 100; gifts.push(giveReward());
     }
-
-
-    if (
-        bonusCount > 0
-    ) {
-
-        timerText.textContent =
-            timeLeft;
-
-        statusText.textContent =
-            "⏱️ 시간 +" +
-            (
-                bonusCount * 20
-            ) +
-            "초!";
+    if (gifts.length) {
+        timerText.textContent = timeLeft; updateItems();
+        document.getElementById("giftNotice").textContent = "🎁 " + gifts.join(" · ") + " / 시간 +" + gifts.length * 20 + "초!";
+        statusText.textContent = "🎁 100점 보너스! 아이템이 추가됐어요.";
     }
+    updateRecord(); updateEffects();
 }
 
 
@@ -1723,23 +1734,9 @@ function showHints() {
 ========================================= */
 
 function checkClear() {
-
-    const possible =
-        findValidRectangles();
-
-
-    /*
-       더 이상 합 10을
-       만들 수 없으면 클리어
-    */
-
-    if (
-        possible.length === 0
-    ) {
-
-        endGame(
-            true
-        );
+    if (playing && !findValidRectangles().length) {
+        buildBoard();
+        statusText.textContent = "🍎 새 사과판! 남은 시간과 점수는 그대로예요.";
     }
 }
 
@@ -1792,97 +1789,19 @@ function giveReward() {
    게임 종료 / 클리어
 ========================================= */
 
-function endGame(
-    cleared
-) {
-
-    if (
-        !playing
-    ) {
-        return;
-    }
-
-
-    playing = false;
-
-    dragging = false;
-
-
-    clearInterval(
-        timerInterval
-    );
-
-    timerInterval = null;
-
-
-    selection.style.display =
-        "none";
-
-
-    comboBar.style.width =
-        "0%";
-
-
-    apples.forEach(
-        function(apple) {
-
-            apple.classList.remove(
-                "selected"
-            );
-        }
-    );
-
-
-    currentSumText.textContent =
-        "0";
-
-
-    finalScore.textContent =
-        formatScore(score)
-        +
-        "점";
-
-
-    if (
-        cleared
-    ) {
-
-        overlayTitle.textContent =
-            "🎉 GAME CLEAR!";
-
-
-        const rewardText =
-            giveReward();
-
-
-        reward.textContent =
-            "🎁 " +
-            rewardText;
-
-
-        statusText.textContent =
-            "게임 클리어!";
-
-    } else {
-
-        overlayTitle.textContent =
-            "⏰ 게임 종료!";
-
-
-        reward.textContent =
-            "";
-
-
-        statusText.textContent =
-            "시간 종료!";
-    }
-
-
-    updateItems();
-
-
-    overlay.style.display =
-        "flex";
+function endGame() {
+    if (!playing || timeLeft > 0) return;
+    playing = false; cancelSelection(); clearInterval(timerInterval); timerInterval = null;
+    comboBar.style.width = "0%"; updateRecord();
+    finalScore.textContent = formatScore(score) + "점";
+    overlayTitle.textContent = recordAnnounced ? "🏆 신기록 달성!" : "⏰ 게임 종료!";
+    reward.textContent = "최고기록 " + formatScore(bestScore) + "점";
+    statusText.textContent = "시간 종료!";
+    comboBoostActive = itemBoostActive = freezeActive = hintActive = false;
+    document.body.classList.remove("comboBoost", "freeze");
+    apples.forEach(a => a.classList.remove("hint"));
+    updateMultiplier(); updateItems(); updateEffects();
+    overlay.style.display = "flex";
 }
 
 
@@ -2595,6 +2514,38 @@ game.addEventListener("pointercancel", cancelSelection);
 game.addEventListener("lostpointercapture", cancelSelection);
 window.addEventListener("blur", cancelSelection);
 window.addEventListener("resize", cancelSelection);
+
+
+function updateRecord() {
+    if (score > bestScore) {
+        bestScore = score;
+        try { localStorage.setItem("chapple-best-score", String(bestScore)); } catch {}
+    }
+    if (score > runStartBest && score > 0) {
+        recordAnnounced = true;
+        document.getElementById("recordNotice").textContent = "🎉 신기록 달성!";
+    }
+    document.getElementById("bestScore").textContent = formatScore(bestScore);
+}
+function updateEffects() {
+    const now = Date.now();
+    const urgent = playing && timerStarted && timeLeft <= 10 && timeLeft > 0 && !freezeActive;
+    document.getElementById("timeWarning").hidden = !urgent;
+    document.getElementById("freezeBadge").hidden = !freezeActive;
+    document.getElementById("hintFloat").hidden = !hintActive;
+    document.body.classList.toggle("timeUrgent", urgent);
+    [["comboEffect",comboBoostActive,comboBoostEnd],["boostEffect",itemBoostActive,itemBoostEnd],
+     ["freezeEffect",freezeActive,freezeEnd],["hintEffect",hintActive,hintEnd]].forEach(([id,active,end]) => {
+        const row = document.getElementById(id);
+        row.hidden = !active || !playing;
+        const remaining = Math.max(0,(end-now)/1000);
+        row.querySelector(".effectSeconds").textContent = remaining.toFixed(1)+"초";
+        row.querySelector(".effectFill").style.width = Math.min(100,remaining*10)+"%";
+    });
+}
+setInterval(updateEffects,50);
+updateRecord();
+updateEffects();
 
 </script>
 
