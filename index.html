@@ -483,6 +483,34 @@ body.freeze #game {
 .helpNote { background: #eef5e3; padding: 12px; border-radius: 10px; }
 #helpClose { display: block; width: 100%; margin-top: 20px; padding: 12px; border: 0; border-radius: 12px; background: #557f39; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
 
+
+/* Same 17 × 10 board, scaled to fit phones without horizontal scrolling. */
+#game { touch-action: none; -webkit-user-select: none; }
+#helpButton { min-width: 44px; min-height: 44px; }
+.mobileTip { display: none; }
+@media (max-width: 900px) {
+    body { padding: 12px 8px 24px; }
+    #gameWrapper { width: 100%; max-width: 865px; overflow: visible; }
+    #game {
+        --cell: min(45px, calc((100vw - 44px) / 17 - 2px));
+        grid-template-columns: repeat(17, var(--cell));
+        grid-template-rows: repeat(10, var(--cell));
+        gap: 2px; width: 100%; padding: 10px; border-width: 2px;
+    }
+    .apple { width: var(--cell); height: var(--cell); font-size: clamp(10px, 2.5vw, 19px); padding-top: calc(var(--cell) * .16); }
+    .apple::before { font-size: calc(var(--cell) * .95); }
+    #info { font-size: 14px; line-height: 1.9; }
+    #status { height: auto; min-height: 28px; font-size: 14px; }
+    #comboBarContainer { width: min(300px, 85%); }
+    #items { margin-top: 12px; }
+    .itemButton { min-width: 0; min-height: 44px; padding: 10px; font-size: 13px; }
+    #overlayBox { padding: 16px; max-width: 95%; }
+    #overlayTitle { font-size: 23px; }
+    #finalScore { font-size: 22px; }
+    #reward { font-size: 14px; }
+    #restartButton { margin-top: 10px; padding: 10px 24px; }
+    .mobileTip { display: block; color: #61734c; font-size: 12px; margin: 8px 0; }
+}
 </style>
 </head>
 
@@ -496,7 +524,7 @@ body.freeze #game {
 <p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
     <h2 id="helpTitle" tabindex="-1" autofocus>🍎 플레이 방법</h2>
-    <p>🖱️ 드래그를 해서 숫자 <strong>10</strong>을 만들어주세요.</p>
+    <p>🖱️ 손가락이나 마우스로 드래그해서 숫자 <strong>10</strong>을 만들어주세요.</p>
     <p>🔥 <strong>10콤보</strong> 달성 시 부스트 발동!</p>
     <p>⏱️ <strong>100점마다 20초</strong>가 추가돼요!</p>
     <p>🎁 <strong>클리어 시 아이템</strong> 지급!</p>
@@ -544,7 +572,7 @@ body.freeze #game {
 
 
 <div id="status">
-    사과판을 클릭하면 시작합니다!
+    사과판을 터치하거나 클릭하면 시작합니다!
 </div>
 
 
@@ -592,6 +620,7 @@ body.freeze #game {
 </div>
 
 
+<p class="mobileTip">손가락으로 드래그해 합 10을 만드세요. 가로로 돌리면 사과가 더 크게 보여요.</p>
 <div id="items">
 
     <h3>
@@ -778,6 +807,7 @@ const ITEM_TIME =
 let apples = [];
 
 let dragging = false;
+let activePointerId = null;
 
 let startX = 0;
 let startY = 0;
@@ -916,7 +946,7 @@ function startGame() {
         "0%";
 
     statusText.textContent =
-        "사과판을 클릭하면 시작합니다!";
+        "사과판을 터치하거나 클릭하면 시작합니다!";
 
     overlay.style.display =
         "none";
@@ -1891,7 +1921,7 @@ function formatScore(
 ========================================= */
 
 game.addEventListener(
-    "mousedown",
+    "pointerdown",
 
     function(e) {
 
@@ -1903,7 +1933,7 @@ game.addEventListener(
 
 
         if (
-            e.button !== 0
+            e.button !== 0 || !e.isPrimary || dragging
         ) {
             return;
         }
@@ -1924,8 +1954,9 @@ game.addEventListener(
         }
 
 
-        dragging =
-            true;
+        dragging = true;
+        activePointerId = e.pointerId;
+        game.setPointerCapture(e.pointerId);
 
 
         startX =
@@ -1964,9 +1995,10 @@ game.addEventListener(
 ========================================= */
 
 document.addEventListener(
-    "mousemove",
+    "pointermove",
 
     function(e) {
+        if (e.pointerId !== activePointerId) return;
 
         if (
             !dragging ||
@@ -2109,9 +2141,11 @@ document.addEventListener(
 ========================================= */
 
 document.addEventListener(
-    "mouseup",
+    "pointerup",
 
-    function() {
+    function(e) {
+        if (e.pointerId !== activePointerId) return;
+        activePointerId = null;
 
         if (
             !dragging ||
@@ -2548,6 +2582,19 @@ document.getElementById("helpButton").addEventListener("click", () => {
 document.getElementById("helpClose").addEventListener("click", () => {
     helpDialog.close();
 });
+
+
+function cancelSelection() {
+    dragging = false;
+    activePointerId = null;
+    selection.style.display = "none";
+    currentSumText.textContent = "0";
+    apples.forEach(apple => apple.classList.remove("selected"));
+}
+game.addEventListener("pointercancel", cancelSelection);
+game.addEventListener("lostpointercapture", cancelSelection);
+window.addEventListener("blur", cancelSelection);
+window.addEventListener("resize", cancelSelection);
 
 </script>
 
