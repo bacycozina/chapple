@@ -570,6 +570,16 @@ body { padding-right: 68px; }
 }
 #milestoneBadge { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 4; width: max-content; max-width: 95%; padding: 6px 12px; border-radius: 20px; background: #297934; color: white; font-size: 13px; font-weight: bold; pointer-events: none; box-shadow: 0 2px 8px #17432144; }
 @media(prefers-reduced-motion:reduce) { .timeUrgent #game::before { animation: none; box-shadow: inset 0 0 15px #df293755; } #game.milestone::after { animation: none; background: #57b44d66; } }
+
+/* Clearer numbers and explicit reward names without shifting the board. */
+.apple { font-size: 22px; }
+#milestoneBadge { white-space: normal; text-align: center; font-size: 14px; }
+#giftNotice { font-size: 15px; font-weight: bold; }
+#items .itemButton span { font-size: 17px; font-weight: 800; }
+@media(max-width:900px) {
+    .apple { font-size: clamp(11px, calc(var(--cell) * .7), 22px); }
+    #milestoneBadge { font-size: 12px; }
+}
 </style>
 </head>
 
@@ -1268,10 +1278,10 @@ function checkTimeBonus() {
         timeLeft += 20; nextTimeBonus += 100; gifts.push(giveReward());
     }
     if (gifts.length) {
-        showMilestone(nextTimeBonus - 100);
+        showMilestone(nextTimeBonus - 100, gifts);
         timerText.textContent = timeLeft; updateItems();
         document.getElementById("giftNotice").textContent = "🎁 " + gifts.join(" · ") + " / 시간 +" + gifts.length * 20 + "초!";
-        statusText.textContent = "🎁 100점 보너스! 아이템이 추가됐어요.";
+        statusText.textContent = "🎁 " + gifts.join(" · ");
     }
     updateRecord(); updateEffects();
 }
@@ -2604,9 +2614,9 @@ boardTouchSurface.addEventListener("touchmove", preventBoardScroll, { passive: f
 
 
 let milestoneTimer;
-function showMilestone(points) {
+function showMilestone(points, gifts) {
     const badge = document.getElementById("milestoneBadge");
-    badge.textContent = "🎉 " + points + "점! +20초 · 아이템 +1";
+    badge.textContent = "🎉 " + points + "점! " + gifts.join(" · ");
     badge.hidden = false;
     game.classList.remove("milestone");
     void game.offsetWidth;
@@ -2615,7 +2625,7 @@ function showMilestone(points) {
     milestoneTimer = setTimeout(() => {
         game.classList.remove("milestone");
         badge.hidden = true;
-    }, 1100);
+    }, 3000);
 }
 </script>
 
