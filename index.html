@@ -545,6 +545,31 @@ body { padding-right: 68px; }
     -webkit-touch-callout: none;
 }
 
+
+/* Keep the board anchored while timed effects and rewards change. */
+#effects { min-height: 144px; margin: 12px auto 0; }
+#effects .effectRow { height: 29px; margin: 7px 0; }
+#effects .effectRow[hidden] { display: flex !important; visibility: hidden; }
+#status { height: 28px; min-height: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 28px; }
+#personalRecord { height: 42px; line-height: 21px; overflow: hidden; }
+#recordNotice { display: block; height: 21px; }
+#info { font-variant-numeric: tabular-nums; line-height: 28px; }
+#freezeBadge, #timeWarning { display: inline-block; width: 22px; height: 28px; vertical-align: middle; font-size: 21px; }
+#freezeBadge[hidden], #timeWarning[hidden] { display: inline-block !important; visibility: hidden; }
+#game { position: relative; isolation: isolate; background: linear-gradient(var(--danger-tint, transparent),var(--danger-tint, transparent)), #dcefc5; }
+#game::before, #game::after { content: ""; position: absolute; inset: 0; border-radius: 12px; pointer-events: none; z-index: -1; }
+.timeUrgent #game::before { animation: urgentBoard var(--danger-speed,1s) ease-in-out infinite alternate; }
+@keyframes urgentBoard { from { box-shadow: inset 0 0 3px rgba(215,25,35,.12); } to { box-shadow: inset 0 0 23px rgba(215,25,35,var(--danger-glow,.5)), 0 0 9px rgba(215,25,35,.3); } }
+#game.milestone::after { animation: milestoneFlash 1.1s ease-out; }
+@keyframes milestoneFlash {
+    0%,100% { background: transparent; transform: translateX(0); }
+    15% { background: #57b44d99; transform: translateX(-2px); }
+    30% { background: #57b44d77; transform: translateX(2px); }
+    45% { background: #57b44d55; transform: translateX(-1px); }
+    65% { background: #57b44d33; transform: translateX(0); }
+}
+#milestoneBadge { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 4; width: max-content; max-width: 95%; padding: 6px 12px; border-radius: 20px; background: #297934; color: white; font-size: 13px; font-weight: bold; pointer-events: none; box-shadow: 0 2px 8px #17432144; }
+@media(prefers-reduced-motion:reduce) { .timeUrgent #game::before { animation: none; box-shadow: inset 0 0 15px #df293755; } #game.milestone::after { animation: none; background: #57b44d66; } }
 </style>
 </head>
 
@@ -612,7 +637,7 @@ body { padding-right: 68px; }
 </div>
 
 
-<div id="personalRecord">🏆 내 최고기록 <strong id="bestScore">0</strong>점 <span id="recordNotice" role="status"></span></div><div id="giftNotice" role="status"></div>
+<div id="personalRecord">🏆 내 최고기록 <strong id="bestScore">0</strong>점 <span id="recordNotice" role="status"></span></div>
 <div id="status">
     사과판을 터치하거나 클릭하면 시작합니다!
 </div>
@@ -626,8 +651,7 @@ body { padding-right: 68px; }
 </div>
 
 
-<div id="effects" aria-label="효과 남은 시간"><div id="comboEffect" class="effectRow comboEffect" hidden><span>🔥 콤보 ×2</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="boostEffect" class="effectRow boostEffect" hidden><span>🍇 점수 ×1.5</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="freezeEffect" class="effectRow freezeEffect" hidden><span>🧊 시간 동결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="hintEffect" class="effectRow hintEffect" hidden><span>🍊 조합 연결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div></div>
-<div id="gameWrapper"><div id="hintFloat" hidden aria-hidden="true">🍊</div>
+<div id="gameWrapper"><div id="milestoneBadge" hidden role="status"></div><div id="hintFloat" hidden aria-hidden="true">🍊</div>
 
     <div id="game">
     </div>
@@ -663,6 +687,8 @@ body { padding-right: 68px; }
 </div>
 
 
+<div id="effects" aria-label="효과 남은 시간"><div id="comboEffect" class="effectRow comboEffect" hidden><span>🔥 콤보 ×2</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="boostEffect" class="effectRow boostEffect" hidden><span>🍇 점수 ×1.5</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="freezeEffect" class="effectRow freezeEffect" hidden><span>🧊 시간 동결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="hintEffect" class="effectRow hintEffect" hidden><span>🍊 조합 연결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div></div>
+<div id="giftNotice" role="status"></div>
 <p class="mobileTip">손가락으로 드래그해 합 10을 만드세요. 가로로 돌리면 사과가 더 크게 보여요.</p>
 <div id="items">
 
@@ -1242,6 +1268,7 @@ function checkTimeBonus() {
         timeLeft += 20; nextTimeBonus += 100; gifts.push(giveReward());
     }
     if (gifts.length) {
+        showMilestone(nextTimeBonus - 100);
         timerText.textContent = timeLeft; updateItems();
         document.getElementById("giftNotice").textContent = "🎁 " + gifts.join(" · ") + " / 시간 +" + gifts.length * 20 + "초!";
         statusText.textContent = "🎁 100점 보너스! 아이템이 추가됐어요.";
@@ -2547,6 +2574,10 @@ function updateEffects() {
     document.getElementById("freezeBadge").hidden = !freezeActive;
     document.getElementById("hintFloat").hidden = !hintActive;
     document.body.classList.toggle("timeUrgent", urgent);
+    const danger = urgent ? (11 - timeLeft) / 10 : 0;
+    game.style.setProperty("--danger-tint", "rgba(235,45,55," + (danger * 0.48) + ")");
+    game.style.setProperty("--danger-glow", (0.15 + danger * 0.5).toFixed(2));
+    game.style.setProperty("--danger-speed", (1.4 - danger * 0.9).toFixed(2) + "s");
     [["comboEffect",comboBoostActive,comboBoostEnd],["boostEffect",itemBoostActive,itemBoostEnd],
      ["freezeEffect",freezeActive,freezeEnd],["hintEffect",hintActive,hintEnd]].forEach(([id,active,end]) => {
         const row = document.getElementById(id);
@@ -2571,6 +2602,21 @@ function preventBoardScroll(event) {
 boardTouchSurface.addEventListener("touchstart", preventBoardScroll, { passive: false });
 boardTouchSurface.addEventListener("touchmove", preventBoardScroll, { passive: false });
 
+
+let milestoneTimer;
+function showMilestone(points) {
+    const badge = document.getElementById("milestoneBadge");
+    badge.textContent = "🎉 " + points + "점! +20초 · 아이템 +1";
+    badge.hidden = false;
+    game.classList.remove("milestone");
+    void game.offsetWidth;
+    game.classList.add("milestone");
+    clearTimeout(milestoneTimer);
+    milestoneTimer = setTimeout(() => {
+        game.classList.remove("milestone");
+        badge.hidden = true;
+    }, 1100);
+}
 </script>
 
 </body>
