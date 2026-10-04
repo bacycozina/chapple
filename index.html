@@ -599,7 +599,7 @@ body { padding-right: 68px; }
     <p>🎁 <strong>100점마다 아이템 1개</strong> 즉시 지급!</p>
     <p>🍎 조합이 없으면 새 사과판! <strong>시간이 끝날 때까지</strong> 계속해요.</p>
     <h3>🎒 아이템</h3>
-    <p>게임 중 오른쪽 버튼을 누르면 사용돼요.</p>
+    <p>게임 중 오른쪽 버튼을 누르면 사용돼요. 남은 아이템은 같은 기기·브라우저에 자동 저장돼요.</p>
     <p>🍇 <strong>점수 부스트:</strong> 10초 동안 점수 ×1.5!</p>
     <p>🧊 <strong>시간 동결:</strong> 10초 동안 게임 시간이 멈춰요. 콤보 시간은 계속 흘러요.</p>
     <p>🍊 <strong>조합 힌트:</strong> 10초 동안 합 10 조합의 사과를 🍊로 표시해요.</p>
@@ -952,11 +952,32 @@ let nextTimeBonus =
 
 /* 아이템 보유량 */
 
-let boostCount = 0;
-
-let freezeCount = 0;
-
-let hintCount = 0;
+const INVENTORY_KEY = "chapple-items-v1";
+function loadInventory() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(INVENTORY_KEY));
+        if (!saved || typeof saved !== "object") return {};
+        const result = {};
+        for (const key of ["boost", "freeze", "hint"]) {
+            const value = saved[key];
+            result[key] = Number.isSafeInteger(value) && value >= 0 ? value : 0;
+        }
+        return result;
+    } catch { return {}; }
+}
+const savedInventory = loadInventory();
+let boostCount = savedInventory.boost || 0;
+let freezeCount = savedInventory.freeze || 0;
+let hintCount = savedInventory.hint || 0;
+function saveInventory() {
+    try {
+        localStorage.setItem(INVENTORY_KEY, JSON.stringify({
+            boost: boostCount, freeze: freezeCount, hint: hintCount
+        }));
+    } catch {
+        // Private browsing or unavailable storage must not interrupt play.
+    }
+}
 
 
 /* =========================================
@@ -1292,6 +1313,7 @@ function checkTimeBonus() {
 ========================================= */
 
 function updateItems() {
+    saveInventory();
 
     boostCountText.textContent =
         boostCount;
