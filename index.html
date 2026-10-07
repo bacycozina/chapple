@@ -863,12 +863,12 @@ const START_TIME = 120;
 // Time allowed after the current combo: 1–10, 11–20, then fixed.
 function getComboLimit(currentCombo = combo) {
     if (currentCombo <= 10) {
-        return Math.max(2000, 10000 - Math.max(0, currentCombo - 1) * 1000);
+        return Math.max(3000, 10000 - Math.max(0, currentCombo - 1) * 1000);
     }
     if (currentCombo <= 20) {
-        return 5000 - (currentCombo - 11) * (3000 / 9);
+        return 5000 - (currentCombo - 11) * (2000 / 9);
     }
-    return 2000;
+    return 3000;
 }
 
 const COMBO_BOOST_TIME =
@@ -2388,7 +2388,7 @@ setInterval(
 
 
         /* =================================
-           콤보별 제한시간 (10초 → 최소 2초)
+           콤보별 제한시간 (10초 → 최소 3초)
         ================================= */
 
         if (
