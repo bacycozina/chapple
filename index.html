@@ -601,6 +601,21 @@ body { padding-right: 68px; }
 .beginnerMode #practiceSum { display:block; }
 .beginnerMode #info,.beginnerMode #personalRecord,.beginnerMode #comboBarContainer,
 .beginnerMode #items,.beginnerMode #effects,.beginnerMode #giftNotice { display:none; }
+
+#refillNotice { position:absolute; inset:0; display:flex; flex-direction:column; gap:10px; align-items:center; justify-content:center; z-index:450; background:#f5ffe9dd; border-radius:15px; color:#375f24; pointer-events:none; animation:refillNoticeIn .3s ease-out; }
+#refillNotice strong { font-size:clamp(15px,3vw,24px); }
+#refillNotice span { font-size:clamp(14px,2.5vw,20px); }
+@keyframes refillNoticeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+#game.refillOut .apple { opacity:.18; transition:opacity .35s; }
+#game.refillIn .apple { animation:appleArrival .45s ease-out both; animation-delay:var(--arrival-delay,0ms); }
+#gameWrapper:has(.refillIn) #refillNotice { animation:refillNoticeAway .4s ease-in forwards; }
+@keyframes refillNoticeAway { to { opacity:0; transform:translateY(-12px); } }
+@keyframes appleArrival { from { opacity:0; transform:translateY(-9px) scale(.85); } to { opacity:1; transform:translateY(0) scale(1); } }
+@media(prefers-reduced-motion:reduce) {
+    #refillNotice,#gameWrapper:has(.refillIn) #refillNotice { animation:none; }
+    #gameWrapper:has(.refillIn) #refillNotice { opacity:0; }
+    #game.refillIn .apple { animation:none; }
+}
 </style>
 </head>
 
@@ -702,7 +717,7 @@ body { padding-right: 68px; }
 </div>
 
 
-<div id="gameWrapper"><div id="milestoneBadge" hidden role="status"></div><div id="hintFloat" hidden aria-hidden="true">🍊</div>
+<div id="gameWrapper"><div id="refillNotice" hidden role="status"><strong>더 이상 할 게 없습니다!</strong><span>다시 채울게요! 🍎</span></div><div id="milestoneBadge" hidden role="status"></div><div id="hintFloat" hidden aria-hidden="true">🍊</div>
 
     <div id="game">
     </div>
@@ -938,6 +953,9 @@ function readBestScore() {
 let bestScore = readBestScore();
 let runStartBest = bestScore;
 let recordAnnounced = false;
+let refilling = false;
+let refillStarted = 0;
+let refillVersion = 0;
 let apples = [];
 
 let dragging = false;
@@ -1038,6 +1056,10 @@ function saveInventory() {
 ========================================= */
 
 function startGame() {
+    refillVersion++;
+    refilling = false;
+    game.classList.remove("refillOut", "refillIn");
+    document.getElementById("refillNotice").hidden = true;
     document.body.classList.toggle("beginnerMode", gameMode === "beginner");
 
     clearInterval(
@@ -1209,7 +1231,7 @@ function startTimer() {
                 */
 
                 if (
-                    !freezeActive
+                    !freezeActive && !refilling
                 ) {
 
                     timeLeft--;
@@ -1387,21 +1409,21 @@ function updateItems() {
     boostItem.disabled =
         (
             boostCount <= 0 ||
-            !playing ||
+            !playing || refilling ||
             !timerStarted
         );
 
     freezeItem.disabled =
         (
             freezeCount <= 0 ||
-            !playing ||
+            !playing || refilling ||
             !timerStarted
         );
 
     hintItem.disabled =
         (
             hintCount <= 0 ||
-            !playing ||
+            !playing || refilling ||
             !timerStarted
         );
 }
@@ -1418,7 +1440,7 @@ boostItem.addEventListener(
 
         if (
             boostCount <= 0 ||
-            !playing ||
+            !playing || refilling ||
             !timerStarted
         ) {
             return;
@@ -1464,7 +1486,7 @@ freezeItem.addEventListener(
 
         if (
             freezeCount <= 0 ||
-            !playing ||
+            !playing || refilling ||
             !timerStarted
         ) {
             return;
@@ -1509,7 +1531,7 @@ hintItem.addEventListener(
 
         if (
             hintCount <= 0 ||
-            !playing ||
+            !playing || refilling ||
             !timerStarted
         ) {
             return;
@@ -1865,10 +1887,40 @@ function showHints() {
 ========================================= */
 
 function checkClear() {
-    if (playing && !findValidRectangles().length) {
+    if (playing && !refilling && !findValidRectangles().length) refillBoard();
+}
+function refillBoard() {
+    refilling = true;
+    refillStarted = Date.now();
+    const version = ++refillVersion;
+    cancelSelection();
+    updateItems();
+    document.getElementById("refillNotice").hidden = false;
+    game.classList.add("refillOut");
+    setTimeout(() => {
+        if (version !== refillVersion || !playing) return;
         buildBoard();
-        statusText.textContent = "🍎 새 사과판! 남은 시간과 점수는 그대로예요.";
-    }
+        game.classList.remove("refillOut");
+        apples.forEach((apple, i) => {
+            apple.style.setProperty("--arrival-delay", (Math.floor(i / COLS) * 35) + "ms");
+        });
+        game.classList.add("refillIn");
+        setTimeout(() => {
+            if (version !== refillVersion || !playing) return;
+            const paused = Date.now() - refillStarted;
+            if (lastSuccessTime) lastSuccessTime += paused;
+            if (comboBoostActive) comboBoostEnd += paused;
+            if (itemBoostActive) itemBoostEnd += paused;
+            if (freezeActive) freezeEnd += paused;
+            if (hintActive) hintEnd += paused;
+            refilling = false;
+            game.classList.remove("refillIn");
+            document.getElementById("refillNotice").hidden = true;
+            statusText.textContent = "🍎 다시 채웠어요! 이어서 플레이하세요.";
+            updateItems();
+            updateEffects();
+        }, 850);
+    }, 1400);
 }
 
 
@@ -1921,7 +1973,7 @@ function giveReward() {
 ========================================= */
 
 function endGame() {
-    if (gameMode === "beginner" || !playing || timeLeft > 0) return;
+    if (gameMode === "beginner" || !playing || refilling || timeLeft > 0) return;
     playing = false; cancelSelection(); clearInterval(timerInterval); timerInterval = null;
     comboBar.style.width = "0%"; updateRecord();
     finalScore.textContent = formatScore(score) + "점";
@@ -1975,9 +2027,7 @@ game.addEventListener(
 
     function(e) {
 
-        if (
-            !playing
-        ) {
+        if (!playing || refilling) {
             return;
         }
 
@@ -2443,9 +2493,7 @@ document.addEventListener(
 setInterval(
     function() {
 
-        if (
-            !playing
-        ) {
+        if (!playing || refilling) {
 
             return;
         }
@@ -2671,8 +2719,8 @@ function updateRecord() {
 }
 function updateEffects() {
     document.getElementById("practiceSumValue").textContent = currentSumText.textContent;
-    const now = Date.now();
-    const urgent = gameMode !== "beginner" && playing && timerStarted && timeLeft <= 10 && timeLeft > 0 && !freezeActive;
+    const now = refilling ? refillStarted : Date.now();
+    const urgent = gameMode !== "beginner" && !refilling && playing && timerStarted && timeLeft <= 10 && timeLeft > 0 && !freezeActive;
     document.getElementById("timeWarning").hidden = !urgent;
     document.getElementById("freezeBadge").hidden = !freezeActive;
     document.getElementById("hintFloat").hidden = !hintActive;
