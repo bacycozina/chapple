@@ -618,6 +618,10 @@ body { padding-right: 68px; }
 }
 #modeButton { width: 44px; height: 44px; padding: 0; border: 2px solid #73964d; border-radius: 50%; background: white; font-size: 23px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
 #modeButton:hover { background: #eaf5df; }
+
+.modePlayRow { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+.modePlayRow #gameMode { flex: 1; min-width: 0; }
+.modePlayRow #modeStart { margin: 0; flex: none; min-height: 44px; white-space: nowrap; }
 </style>
 </head>
 
@@ -655,13 +659,15 @@ body { padding-right: 68px; }
 <p><strong>🌱 초보자</strong><br>시간제한도 점수도 없이 합 10을 연습해요. 콤보와 아이템 없이 천천히 즐길 수 있어요.</p>
 <p>어떤 모드든 조합이 없으면 사과판이 새로 생겨요.</p>
 <label for="gameMode">플레이할 모드</label>
+<div class="modePlayRow">
 <select id="gameMode">
 <option value="classic">🍎 클래식</option>
 <option value="multiples">🔢 차곡차곡</option>
 <option value="beginner">🌱 초보자</option>
 </select>
-<p class="modeNote">시작 버튼을 누르면 진행 중인 판이 초기화돼요. 저장된 최고기록과 보유 아이템은 유지돼요. 이 창을 열어도 진행 중인 게임 시간은 계속 흘러요.</p>
-<button id="modeStart" type="button">선택한 모드로 새로 시작</button>
+<button id="modeStart" type="button">플레이</button>
+</div>
+<p class="modeNote">플레이를 누르면 선택한 모드로 새 판이 시작되고 이 창이 닫혀요. 저장된 최고기록과 보유 아이템은 유지돼요. 이 창을 열어도 진행 중인 게임 시간은 계속 흘러요.</p>
 <button id="modeClose" type="button">닫기</button>
 </dialog>
 <div id="practiceSum">선택 합 <strong id="practiceSumValue">0</strong> / 10</div>
