@@ -657,15 +657,19 @@ body { padding-right: 68px; }
 
 
 
+
+
 /* CATALOG STYLES START */
 #augmentDialog h2:focus{outline:none}.augCard:focus-visible{outline:2px solid #557f39;outline-offset:3px}
-#augmentInfoButton {width:32px;height:32px;border:2px solid #557f39;border-radius:50%;background:#fff9db;color:#557f39;font-size:22px;font-weight:bold;cursor:pointer;margin-right:8px;vertical-align:middle;}
-.ownedAugments {display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.ownedAugments span{padding:4px 8px;border-radius:12px;font-size:12px}
+#augmentBar {display:flex;justify-content:center;gap:10px;background:transparent;padding:4px;margin:10px auto;}
+.augmentNavButton {display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid #d5dfc6;border-radius:12px;background:#fffdf6;color:#466831;cursor:pointer;font:inherit;}
+.augmentNavIcon {display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:2px solid #557f39;border-radius:50%;background:#fff9db;font-size:20px;font-weight:bold;}
 #augmentCatalog {box-sizing:border-box;width:96vw;max-width:1800px;max-height:94dvh;overflow:auto;padding:18px;border:0;border-radius:18px;background:#fffdf6;color:#263b2b;}
 #augmentCatalog::backdrop{background:#10241bd9}#augmentCatalog h2{margin:0 70px 8px 0;font-size:22px;text-align:left}
 #catalogClose{position:absolute;right:18px;top:14px;min-height:36px;padding:5px 18px;border:0;border-radius:10px;background:#557f39;color:white;cursor:pointer}
 #catalogOwned{text-align:left;font-size:13px;margin:8px 0 12px;line-height:1.5}
-.catalogTableWrap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+.catalogTableWrap{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:start}
+#augmentCatalog caption{font-size:15px;font-weight:bold;padding:8px;border-radius:8px 8px 0 0;text-align:center;}
 #augmentCatalog table{border-collapse:collapse;table-layout:fixed;width:100%;font-size:12px;text-align:left;line-height:1.35}
 #augmentCatalog th,#augmentCatalog td{padding:4px 6px;border:1px solid #dddcd0;overflow-wrap:anywhere;vertical-align:top}
 #augmentCatalog thead th:first-child{width:33%}#augmentCatalog thead th{background:#e5eddb}
@@ -2967,13 +2971,17 @@ const catalogDialog=document.createElement('dialog');catalogDialog.id='augmentCa
 catalogDialog.innerHTML='<h2>✨ 증강 도감</h2><button type="button" id="catalogClose" aria-label="증강 도감 닫기">닫기</button><p id="catalogOwned"></p><div class="catalogTableWrap"></div>';
 document.body.append(catalogDialog);
 catalogDialog.querySelector('#catalogClose').onclick=()=>catalogDialog.close();
+let catalogView='all';
 function renderCatalog(){
  const owned=AUGMENTS.filter(a=>aug.owned.has(a.id));
- catalogDialog.querySelector('#catalogOwned').textContent='보유 능력 '+owned.length+'개'+(owned.length?' · '+owned.map(a=>a.name).join(', '):' · 아직 없어요');
+ catalogDialog.querySelector('h2').textContent=catalogView==='owned'?'! 내가 고른 증강':'? 모든 증강';
+ catalogDialog.querySelector('#catalogOwned').textContent=catalogView==='owned'?(owned.length?'현재 보유한 능력 '+owned.length+'개':'아직 고른 증강이 없어요.'):'브론즈 → 골드 → 다이아몬드 → 프리즘 · 전체 '+AUGMENTS.length+'개';
  const wrap=catalogDialog.querySelector('.catalogTableWrap');wrap.replaceChildren();
- for(let group=0;group<3;group++){
- const table=document.createElement('table');table.innerHTML='<thead><tr><th scope="col">능력 · 등급</th><th scope="col">효과</th></tr></thead><tbody></tbody>';wrap.append(table);const tbody=table.querySelector('tbody');
- for(const a of AUGMENTS.filter((a,index)=>index%3===group)){
+ for(const tier of ['bronze','gold','diamond','prism']){
+ const entries=AUGMENTS.filter(a=>a.tier===tier&&(catalogView==='all'||aug.owned.has(a.id)));
+ if(!entries.length)continue;
+ const table=document.createElement('table');table.dataset.tier=tier;table.innerHTML='<caption class="aug-'+tier+'">'+tiers[tier]+'</caption><thead><tr><th scope="col">능력</th><th scope="col">효과</th></tr></thead><tbody></tbody>';wrap.append(table);const tbody=table.querySelector('tbody');
+ for(const a of entries){
   const tr=document.createElement('tr'),name=document.createElement('th'),effect=document.createElement('td');
   name.scope='row';name.className='aug-'+a.tier;name.textContent=a.name;effect.textContent=a.desc;
   const reason=augmentBlockReason(a.id),state=document.createElement('small');state.textContent=aug.owned.has(a.id)?'✓ 보유 중':reason?'선택 제외':'미보유';state.title=reason;
@@ -2987,10 +2995,11 @@ function renderCatalog(){
 function renderAug(){
  augBar.hidden=gameMode!=='augment';
  augBar.replaceChildren();
- const button=document.createElement('button');button.id='augmentInfoButton';button.type='button';button.textContent='!';button.setAttribute('aria-label','전체 증강과 보유 능력 보기');button.onclick=()=>{renderCatalog();catalogDialog.showModal();};
- const title=document.createElement('span');title.textContent='증강 도감 · 보유 '+aug.owned.size+'개';augBar.append(button,title);
- const owned=document.createElement('div');owned.className='ownedAugments';
- for(const id of aug.owned){const a=AUGMENTS.find(x=>x.id===id);const p=document.createElement('span');p.className='aug-'+a.tier;p.textContent=a.name;p.title=a.desc;owned.append(p);}augBar.append(owned);
+ for(const [view,icon,label,id]of [['all','?','모든 증강','augmentAllButton'],['owned','!','내가 고른 증강 · '+aug.owned.size+'개','augmentInfoButton']]){
+  const button=document.createElement('button');button.id=id;button.type='button';button.className='augmentNavButton';button.setAttribute('aria-label',label);
+  const symbol=document.createElement('span');symbol.className='augmentNavIcon';symbol.textContent=icon;symbol.setAttribute('aria-hidden','true');const text=document.createElement('span');text.textContent=label;button.append(symbol,text);
+  button.onclick=()=>{catalogView=view;renderCatalog();catalogDialog.showModal();};augBar.append(button);
+ }
  if(catalogDialog.open)renderCatalog();
  if(gameMode==='augment')document.getElementById('modeRule').textContent='✨ 차별적인 능력 · '+(aug.prism?AUGMENTS.find(a=>a.id===aug.prism).name:'합 10')+(has('reverse')?' · 목표 '+aug.target:'');
 }
