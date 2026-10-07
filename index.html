@@ -581,6 +581,12 @@ body { padding-right: 68px; }
     #milestoneBadge { font-size: 12px; }
 }
 
+
+.modePicker { margin: 6px auto 12px; max-width: 500px; }
+.modePicker label { font-size: 13px; color: #537c34; font-weight: bold; margin-right: 6px; }
+#gameMode { max-width: 100%; min-height: 44px; padding: 7px 10px; background: #fffdf5; color: #35452d; border: 1px solid #9aba75; border-radius: 10px; font-size: 14px; }
+#gameMode:disabled { opacity: .75; }
+#modeRule { min-height: 34px; margin: 5px 0 0; font-size: 12px; line-height: 17px; color: #61734c; }
 </style>
 </head>
 
@@ -594,7 +600,7 @@ body { padding-right: 68px; }
 <p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
     <h2 id="helpTitle" tabindex="-1" autofocus>🍎 플레이 방법</h2>
-    <p>🖱️ 손가락이나 마우스로 드래그해서 숫자 <strong>10</strong>을 만들어주세요.</p>
+    <p>🖱️ 손가락이나 마우스로 드래그해서 <strong>기본 모드는 합 10</strong>, <strong>10의 배수 모드는 합 10·20·30…</strong>을 만들어주세요.</p>
     <p>🔥 <strong>10콤보</strong> 달성 시 부스트 발동!</p>
     <p>⏱️ <strong>100점마다 20초</strong>가 추가돼요!</p>
     <p>🎁 <strong>100점마다 아이템 1개</strong> 즉시 지급!</p>
@@ -603,11 +609,19 @@ body { padding-right: 68px; }
     <p>게임 중 오른쪽 버튼을 누르면 사용돼요. 남은 아이템은 같은 기기·브라우저에 자동 저장돼요.</p>
     <p>🍇 <strong>점수 부스트:</strong> 10초 동안 점수 ×1.5!</p>
     <p>🧊 <strong>시간 동결:</strong> 10초 동안 게임 시간이 멈춰요. 콤보 시간은 계속 흘러요.</p>
-    <p>🍊 <strong>조합 힌트:</strong> 10초 동안 합 10 조합의 사과를 🍊로 표시해요.</p>
+    <p>🍊 <strong>조합 힌트:</strong> 10초 동안 현재 모드에서 지울 수 있는 조합의 사과를 🍊로 표시해요.</p>
     <button id="helpClose" type="button">알겠어요</button>
 </dialog>
 
 
+<div class="modePicker">
+<label for="gameMode">게임 모드</label>
+<select id="gameMode">
+<option value="classic">🍎 기본 · 합 10</option>
+<option value="multiples">🔢 10의 배수 · 10, 20, 30…</option>
+</select>
+<p id="modeRule">합이 정확히 10이면 사라져요.</p>
+</div>
 <div id="info">
 
     ⏱️
@@ -700,7 +714,7 @@ body { padding-right: 68px; }
 
 <div id="effects" aria-label="효과 남은 시간"><div id="comboEffect" class="effectRow comboEffect" hidden><span>🔥 콤보 ×2</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="boostEffect" class="effectRow boostEffect" hidden><span>🍇 점수 ×1.5</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="freezeEffect" class="effectRow freezeEffect" hidden><span>🧊 시간 동결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="hintEffect" class="effectRow hintEffect" hidden><span>🍊 조합 연결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div></div>
 <div id="giftNotice" role="status"></div>
-<p class="mobileTip">손가락으로 드래그해 합 10을 만드세요. 가로로 돌리면 사과가 더 크게 보여요.</p>
+<p class="mobileTip">손가락으로 드래그해 목표 합을 만드세요. 가로로 돌리면 사과가 더 크게 보여요.</p>
 <div id="items">
 
     <h3 class="itemDockTitle">아이템</h3>
@@ -882,8 +896,20 @@ const ITEM_TIME =
    게임 상태
 ========================================= */
 
-let bestScore = 0;
-try { const saved = Number(localStorage.getItem("chapple-best-score")); if (Number.isFinite(saved) && saved > 0) bestScore = saved; } catch {}
+let gameMode = "classic";
+function isValidSum(sum) {
+    return sum > 0 && (gameMode === "multiples" ? sum % 10 === 0 : sum === 10);
+}
+function recordKey() {
+    return gameMode === "multiples" ? "chapple-best-score-multiples" : "chapple-best-score";
+}
+function readBestScore() {
+    try {
+        const saved = Number(localStorage.getItem(recordKey()));
+        return Number.isFinite(saved) && saved > 0 ? saved : 0;
+    } catch { return 0; }
+}
+let bestScore = readBestScore();
 let runStartBest = bestScore;
 let recordAnnounced = false;
 let apples = [];
@@ -1314,6 +1340,7 @@ function checkTimeBonus() {
 ========================================= */
 
 function updateItems() {
+    document.getElementById("gameMode").disabled = playing && timerStarted;
     saveInventory();
 
     boostCountText.textContent =
@@ -1478,7 +1505,7 @@ hintItem.addEventListener(
 
 
         statusText.textContent =
-            "🍊 합이 10이 되는 조합을 표시합니다!";
+            "🍊 현재 모드에서 지울 수 있는 조합을 표시합니다!";
     }
 );
 
@@ -1691,7 +1718,7 @@ function findValidRectangles() {
 
 
                     if (
-                        sum === 10
+                        isValidSum(sum)
                     ) {
 
                         results.push({
@@ -2195,7 +2222,7 @@ document.addEventListener(
         ================================= */
 
         if (
-            sum === 10 &&
+            isValidSum(sum) &&
             selected.length > 0
         ) {
 
@@ -2592,7 +2619,7 @@ window.addEventListener("resize", cancelSelection);
 function updateRecord() {
     if (score > bestScore) {
         bestScore = score;
-        try { localStorage.setItem("chapple-best-score", String(bestScore)); } catch {}
+        try { localStorage.setItem(recordKey(), String(bestScore)); } catch {}
     }
     if (score > runStartBest && score > 0) {
         recordAnnounced = true;
@@ -2652,6 +2679,17 @@ function showMilestone(points, gifts) {
 }
 
 
+
+document.getElementById("gameMode").addEventListener("change", function() {
+    if (playing && timerStarted) { this.value = gameMode; return; }
+    gameMode = this.value === "multiples" ? "multiples" : "classic";
+    bestScore = readBestScore();
+    document.getElementById("modeRule").textContent = gameMode === "multiples"
+        ? "합이 10·20·30…이면 사라져요! 시작 후에는 모드를 바꿀 수 없어요."
+        : "합이 정확히 10이면 사라져요. 시작 후에는 모드를 바꿀 수 없어요.";
+    startGame();
+    updateRecord();
+});
 </script>
 
 </body>
