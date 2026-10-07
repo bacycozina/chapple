@@ -693,7 +693,7 @@ body { padding-right: 68px; }
 body {padding:8px 68px 8px 10px;}
 .titleRow {gap:8px;margin-bottom:3px;}
 .titleRow h1 {font-size:26px;line-height:36px;}
-#modeRule {min-height:0;height:18px;line-height:18px;margin:2px 0 3px;}
+#modeRule {display:none !important;}
 #info {font-size:16px;line-height:26px;margin-bottom:0;}
 #personalRecord {height:20px;line-height:20px;font-size:12px;margin:0;}
 #recordNotice {display:inline;height:auto;margin-left:6px;}
@@ -3042,6 +3042,9 @@ function renderCatalog(){
  }
 }
 function renderAug(){
+ let targetBadge=document.getElementById('targetSumBadge');
+ if(!targetBadge){targetBadge=document.createElement('span');targetBadge.id='targetSumBadge';document.getElementById('info').append(targetBadge);}
+ targetBadge.hidden=!has('reverse');targetBadge.textContent=' · 목표 합 '+aug.target;
  augBar.hidden=gameMode!=='augment';
  augBar.replaceChildren();
  for(const [view,icon,label,id]of [['all','?','모든 증강','augmentAllButton']]){
