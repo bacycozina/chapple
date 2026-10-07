@@ -587,6 +587,20 @@ body { padding-right: 68px; }
 #gameMode { max-width: 100%; min-height: 44px; padding: 7px 10px; background: #fffdf5; color: #35452d; border: 1px solid #9aba75; border-radius: 10px; font-size: 14px; }
 #gameMode:disabled { opacity: .75; }
 #modeRule { min-height: 34px; margin: 5px 0 0; font-size: 12px; line-height: 17px; color: #61734c; }
+
+#modeButton { min-width:44px; min-height:44px; border:2px solid #73964d; border-radius:12px; background:#fffdf5; color:#43682d; font-weight:bold; cursor:pointer; }
+#modeDialog { width:min(470px,calc(100% - 28px)); max-height:85vh; padding:22px; border:2px solid #9aba75; border-radius:20px; background:#fffdf5; color:#35452d; text-align:left; }
+#modeDialog::backdrop { background:#20321d88; }
+#modeDialog h2 { margin-top:0; }
+#modeDialog p { line-height:1.6; font-size:14px; }
+#modeDialog .modeNote { font-size:12px; color:#61734c; }
+#modeStart,#modeClose { min-height:44px; padding:10px 14px; border:0; border-radius:10px; cursor:pointer; margin-top:8px; }
+#modeStart { background:#557f39; color:white; font-weight:bold; }
+#modeClose { background:#e8eedf; color:#35452d; }
+#practiceSum { display:none; font-size:18px; color:#537c34; margin:10px 0; }
+.beginnerMode #practiceSum { display:block; }
+.beginnerMode #info,.beginnerMode #personalRecord,.beginnerMode #comboBarContainer,
+.beginnerMode #items,.beginnerMode #effects,.beginnerMode #giftNotice { display:none; }
 </style>
 </head>
 
@@ -596,17 +610,19 @@ body { padding-right: 68px; }
 <div class="titleRow">
     <h1>🍎 차플게임</h1>
     <button id="helpButton" type="button" aria-label="플레이 방법과 규칙 보기" aria-haspopup="dialog" aria-controls="helpDialog">?</button>
+    <button id="modeButton" type="button" aria-haspopup="dialog" aria-controls="modeDialog">모드</button>
 </div>
 <p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
     <h2 id="helpTitle" tabindex="-1" autofocus>🍎 플레이 방법</h2>
-    <p>🖱️ 손가락이나 마우스로 드래그해서 <strong>기본 모드는 합 10</strong>, <strong>차곡차곡 모드는 합 10·20·30…</strong>을 만들어주세요.</p>
+    <p>🖱️ 손가락이나 마우스로 드래그해서 <strong>클래식·초보자는 합 10</strong>, <strong>차곡차곡 모드는 합 10·20·30…</strong>을 만들어주세요.</p>
     <p>🔥 <strong>10콤보</strong> 달성 시 부스트 발동!</p>
     <p>⏱️ <strong>100점마다 20초</strong>가 추가돼요!</p>
     <p>🎁 <strong>100점마다 아이템 1개</strong> 즉시 지급!</p>
     <p>🍎 조합이 없으면 새 사과판! <strong>시간이 끝날 때까지</strong> 계속해요.</p>
+    <p>🌱 초보자는 시간·점수·콤보·아이템 없이 연습해요.</p>
     <h3>🎒 아이템</h3>
-    <p>게임 중 오른쪽 버튼을 누르면 사용돼요. 남은 아이템은 같은 기기·브라우저에 자동 저장돼요.</p>
+    <p>클래식·차곡차곡에서 오른쪽 버튼을 누르면 사용돼요. 남은 아이템은 같은 기기·브라우저에 자동 저장돼요.</p>
     <p>🍇 <strong>점수 부스트:</strong> 10초 동안 점수 ×1.5!</p>
     <p>🧊 <strong>시간 동결:</strong> 10초 동안 게임 시간이 멈춰요. 콤보 시간은 계속 흘러요.</p>
     <p>🍊 <strong>조합 힌트:</strong> 10초 동안 현재 모드에서 지울 수 있는 조합의 사과를 🍊로 표시해요.</p>
@@ -614,14 +630,24 @@ body { padding-right: 68px; }
 </dialog>
 
 
-<div class="modePicker">
-<label for="gameMode">게임 모드</label>
+<p id="modeRule">🍎 클래식 · 합 10</p>
+<dialog id="modeDialog" aria-labelledby="modeTitle">
+<h2 id="modeTitle" tabindex="-1" autofocus>🎮 모드 선택</h2>
+<p><strong>🍎 클래식</strong><br>합 10을 만들어요. 시간제한, 점수와 콤보에 도전해요.</p>
+<p><strong>🔢 차곡차곡</strong><br>합이 10·20·30…이면 지워져요. 크게 묶어 높은 점수를 노려보세요.</p>
+<p><strong>🌱 초보자</strong><br>시간제한도 점수도 없이 합 10을 연습해요. 콤보와 아이템 없이 천천히 즐길 수 있어요.</p>
+<p>어떤 모드든 조합이 없으면 사과판이 새로 생겨요.</p>
+<label for="gameMode">플레이할 모드</label>
 <select id="gameMode">
-<option value="classic">🍎 기본 · 합 10</option>
-<option value="multiples">🔢 차곡차곡 · 10, 20, 30…</option>
+<option value="classic">🍎 클래식</option>
+<option value="multiples">🔢 차곡차곡</option>
+<option value="beginner">🌱 초보자</option>
 </select>
-<p id="modeRule">합이 정확히 10이면 사라져요.</p>
-</div>
+<p class="modeNote">시작 버튼을 누르면 진행 중인 판이 초기화돼요. 저장된 최고기록과 보유 아이템은 유지돼요. 이 창을 열어도 진행 중인 게임 시간은 계속 흘러요.</p>
+<button id="modeStart" type="button">선택한 모드로 새로 시작</button>
+<button id="modeClose" type="button">닫기</button>
+</dialog>
+<div id="practiceSum">선택 합 <strong id="practiceSumValue">0</strong> / 10</div>
 <div id="info">
 
     ⏱️
@@ -1012,6 +1038,7 @@ function saveInventory() {
 ========================================= */
 
 function startGame() {
+    document.body.classList.toggle("beginnerMode", gameMode === "beginner");
 
     clearInterval(
         timerInterval
@@ -1164,6 +1191,10 @@ function startTimer() {
     }
 
     timerStarted = true;
+    if (gameMode === "beginner") {
+        statusText.textContent = "🌱 천천히 합 10을 찾아보세요!";
+        return;
+    }
 
     statusText.textContent =
         "게임 진행 중!";
@@ -1340,7 +1371,7 @@ function checkTimeBonus() {
 ========================================= */
 
 function updateItems() {
-    document.getElementById("gameMode").disabled = playing && timerStarted;
+    document.getElementById("gameMode").disabled = false;
     saveInventory();
 
     boostCountText.textContent =
@@ -1890,7 +1921,7 @@ function giveReward() {
 ========================================= */
 
 function endGame() {
-    if (!playing || timeLeft > 0) return;
+    if (gameMode === "beginner" || !playing || timeLeft > 0) return;
     playing = false; cancelSelection(); clearInterval(timerInterval); timerInterval = null;
     comboBar.style.width = "0%"; updateRecord();
     finalScore.textContent = formatScore(score) + "점";
@@ -2226,6 +2257,16 @@ document.addEventListener(
             selected.length > 0
         ) {
 
+            if (gameMode === "beginner") {
+                selected.forEach(apple => {
+                    apple.classList.remove("selected", "hint");
+                    apple.classList.add("removed");
+                });
+                currentSumText.textContent = "0";
+                statusText.textContent = "🌱 잘했어요! 다음 합 10을 찾아보세요.";
+                checkClear();
+                return;
+            }
             const now =
                 Date.now();
 
@@ -2617,6 +2658,7 @@ window.addEventListener("resize", cancelSelection);
 
 
 function updateRecord() {
+    if (gameMode === "beginner") return;
     if (score > bestScore) {
         bestScore = score;
         try { localStorage.setItem(recordKey(), String(bestScore)); } catch {}
@@ -2628,8 +2670,9 @@ function updateRecord() {
     document.getElementById("bestScore").textContent = formatScore(bestScore);
 }
 function updateEffects() {
+    document.getElementById("practiceSumValue").textContent = currentSumText.textContent;
     const now = Date.now();
-    const urgent = playing && timerStarted && timeLeft <= 10 && timeLeft > 0 && !freezeActive;
+    const urgent = gameMode !== "beginner" && playing && timerStarted && timeLeft <= 10 && timeLeft > 0 && !freezeActive;
     document.getElementById("timeWarning").hidden = !urgent;
     document.getElementById("freezeBadge").hidden = !freezeActive;
     document.getElementById("hintFloat").hidden = !hintActive;
@@ -2680,13 +2723,26 @@ function showMilestone(points, gifts) {
 
 
 
-document.getElementById("gameMode").addEventListener("change", function() {
-    if (playing && timerStarted) { this.value = gameMode; return; }
-    gameMode = this.value === "multiples" ? "multiples" : "classic";
+const modeDialog = document.getElementById("modeDialog");
+document.getElementById("modeButton").addEventListener("click", () => {
+    cancelSelection();
+    document.getElementById("gameMode").value = gameMode;
+    modeDialog.showModal();
+});
+document.getElementById("modeClose").addEventListener("click", () => modeDialog.close());
+document.getElementById("modeStart").addEventListener("click", () => {
+    const choice = document.getElementById("gameMode").value;
+    gameMode = ["classic", "multiples", "beginner"].includes(choice) ? choice : "classic";
     bestScore = readBestScore();
-    document.getElementById("modeRule").textContent = gameMode === "multiples"
-        ? "합이 10·20·30…이면 사라져요! 시작 후에는 모드를 바꿀 수 없어요."
-        : "합이 정확히 10이면 사라져요. 시작 후에는 모드를 바꿀 수 없어요.";
+    document.getElementById("modeRule").textContent = {
+        classic: "🍎 클래식 · 합 10",
+        multiples: "🔢 차곡차곡 · 합 10·20·30…",
+        beginner: "🌱 초보자 · 시간과 점수 없이 합 10 연습"
+    }[gameMode];
+    modeDialog.close();
+    clearTimeout(milestoneTimer);
+    game.classList.remove("milestone");
+    document.getElementById("milestoneBadge").hidden = true;
     startGame();
     updateRecord();
 });
