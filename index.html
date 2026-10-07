@@ -633,6 +633,21 @@ body { padding-right: 68px; }
 #modeDialog .modeCard p { margin:0; font-size:13px; }
 .modePlay { flex:none; min-height:44px; padding:10px 12px; border:0; border-radius:10px; color:white; background:#557f39; font-weight:bold; cursor:pointer; }
 .modePlay:focus-visible { outline:3px solid #2196f3; outline-offset:2px; }
+
+#augmentDialog {width:min(680px,94vw);max-height:88dvh;overflow:auto;border:0;border-radius:22px;padding:22px;background:#fffdf6;color:#263b2b;}
+#augmentDialog::backdrop {background:#10241bd9;}
+.augChoices {display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.augCard {display:flex;flex-direction:column;gap:12px;padding:18px 12px;border:2px solid;border-radius:16px;cursor:pointer;font:inherit;text-align:left;white-space:normal;line-height:1.5;min-width:0;}
+.augCard strong {font-size:19px}.augCard small {font-weight:bold}.augCard span {font-size:14px}
+.aug-bronze {background:#f7e7d8;color:#7a4829;border-color:#be8558;}
+.aug-gold {background:#fff0b5;color:#71510b;border-color:#e3b736;}
+.aug-diamond {background:#d9f6ff;color:#1c6179;border-color:#70cee9;}
+.aug-prism {color:#352b63;border-color:#cba5ff;background:linear-gradient(120deg,#e7c8ff,#bbffe7,#ffdfed,#c6ddff);background-size:300% 300%;animation:aurora 4s ease infinite;box-shadow:0 0 16px #b79cff99;}
+@keyframes aurora {50%{background-position:100% 100%;}}
+#augmentBar {max-width:740px;margin:10px auto;text-align:left;font-size:13px;padding:10px;border-radius:12px;background:#fff;}
+#augmentBar[hidden]{display:none}#augmentBar p {padding:8px;border-radius:8px;margin:6px 0;}
+.apple.held {outline:3px solid #af70ff;background:#daccff;}
+@media(max-width:520px){.augChoices{grid-template-columns:1fr}.augCard{gap:5px;padding:12px}.augCard strong{font-size:17px}#augmentDialog{padding:16px}}
 </style>
 </head>
 
@@ -671,6 +686,7 @@ body { padding-right: 68px; }
 <div class="modeCard"><div><h3>🌱 초보자</h3><p>시간제한과 점수 없이 합 10을 연습해요. 콤보와 아이템 없이 천천히 즐겨요.</p></div><button type="button" class="modePlay" data-mode="beginner" aria-label="초보자 플레이">플레이</button></div>
 <p class="modeNote">플레이를 누르면 새 판이 시작되고 창이 닫혀요. 선택한 모드는 다음 방문에도 유지돼요. 최고기록과 아이템은 그대로예요.</p>
 <p class="modeNote">이 창을 열어도 진행 중인 게임 시간은 계속 흘러요.</p>
+<div class="modeOption"><strong>✨ 차별적인 능력</strong><p>새 판마다 영구 능력을 선택해요. 프리즘 확률 1%, 한 판에 하나! 능력은 다음 게임에 초기화돼요.</p><button class="modePlay" data-mode="augment">플레이</button></div>
 <button id="modeClose" type="button">닫기</button>
 </dialog>
 <div id="practiceSum">선택 합 <strong id="practiceSumValue">0</strong> / 10</div>
@@ -950,6 +966,7 @@ const ITEM_TIME =
 
 const MODE_KEY = "chapple-mode";
 const MODE_NAMES = {
+    augment: "✨ 차별적인 능력 · 합 10과 증강",
     classic: "🍎 클래식 · 합 10",
     multiples: "🔢 차곡차곡 · 합 10·20·30…",
     dark: "🔦 차단막 · 빛을 따라 합 10 찾기",
@@ -2566,9 +2583,10 @@ setInterval(
 
             if (
                 passed >
-                getComboLimit()
+                getComboLimit() && !(gameMode === "augment" && has("still") && freezeActive)
             ) {
 
+                if (gameMode === "augment" && has("train")) {timeLeft=Math.max(0,timeLeft-5);statusText.textContent="🚂 콤보 끊김! -5초";if(!timeLeft)endGame();}
                 combo = 0;
 
                 lastSuccessTime = 0;
@@ -2848,6 +2866,207 @@ game.addEventListener("pointercancel", hideSpotlight);
 // Keep the last touch position illuminated after lifting a finger.
 window.addEventListener("blur", hideSpotlight);
 window.addEventListener("resize", hideSpotlight);
+
+// Abilities last for one run. Prism changes are mutually exclusive.
+const AUGMENTS = [
+ ['breath','여유로운 손길','bronze','콤보 시간 +0.5초'],
+ ['harvest','풍성한 수확','gold','한 번에 3 / 4~5 / 6~9 / 10개 이상 수확: +3 / 5 / 10 / 50점'],
+ ['rest','작은 여유','bronze','5번 성공할 때마다 +1초'],
+ ['fire','긴 불꽃','bronze','콤보 부스트 +3초'],
+ ['juice','진한 주스','bronze','점수 아이템 +3초'],
+ ['ice','두꺼운 얼음','bronze','동결 아이템 +3초'],
+ ['guide','오래가는 길잡이','bronze','힌트 아이템 +5초'],
+ ['map','넓은 시야','bronze','힌트 조합을 최대 5개 표시'],
+ ['ignition','빠른 점화','gold','8콤보마다 부스트'],
+ ['fuel','불꽃 연료','gold','부스트 중 성공 시 부스트 +0.5초 (남은 시간 최대 15초)'],
+ ['golden','황금 사과','gold','새 판마다 황금 사과 3개: 각각 +5점'],
+ ['frost','얼음 사과','gold','새 판마다 얼음 사과 2개: 각각 +2초'],
+ ['gift','선물 사과','gold','새 판마다 선물 사과 1개: 아이템 지급'],
+ ['double','농축 부스트','gold','점수 아이템 배수 ×2'],
+ ['thrift','알뜰 사용','gold','아이템 사용 시 25% 확률로 수량 보존'],
+ ['still','정지된 순간','gold','시간 동결 중 콤보 시간도 정지'],
+ ['bonus','시간 보너스','gold','100점 보너스 시간 +25초'],
+ ['row','가로 수확','diamond','한 줄 가로 수확 성공 시 +10점'],
+ ['col','세로 수확','diamond','한 줄 세로 수확 성공 시 +10점'],
+ ['edge','모서리 청소','diamond','테두리 사과는 기본 5점'],
+ ['blue','푸른 열기','diamond','콤보 부스트 배수 ×2.5'],
+ ['gifts','더블 선물','diamond','100점마다 아이템 2개'],
+ ['rich','황금 과수원','diamond','새 판마다 황금 사과 5개: 각각 +10점 (황금 사과 대체)'],
+ ['danger','벼랑 끝 집중','diamond','남은 시간 10초 이하에서 점수 ×2'],
+ ['streak','연속 수확','diamond','10콤보 이상 성공 시 +5점'],
+ ['space','빈자리 활용','diamond','선택 영역에 빈칸 3개 이상이면 +8점'],
+ ['steady','꾸준한 수확','bronze','성공할 때마다 +1점'],
+ ['orchard','과수원 시계','bronze','새 판으로 채울 때마다 +3초'],
+ ['rhythm','수확 리듬','gold','10번 성공할 때마다 +3초'],
+ ['master','수확의 달인','diamond','모든 수확 점수 ×1.2'],
+ ['multiple','차곡차곡','prism','합이 10의 배수면 수확! 콤보 시간 -1초 (최소 2초)'],
+ ['rain','사과비','prism','수확한 자리를 즉시 채워요. 사과 50개 수확마다 증강 선택!'],
+ ['reverse','뒤집힌 계산','prism','목표 합 10 → 15 → 20 순환. 수확 점수 ×3'],
+ ['money','시간은 돈','prism','시간 대신 점수가 초당 2점 감소! 50점으로 시작, 수확 ×3. 0점이면 종료하며 최고 도달 점수로 기록'],
+ ['chain','연쇄 반응','prism','수확한 사과의 상하좌우 이웃도 함께 수확 (연쇄는 한 번)'],
+ ['balance','양손 저울','prism','서로 겹치지 않는 두 영역의 합이 같으면 함께 수확! 첫 영역 선택 후에도 시간은 흘러요'],
+ ['solo','고독한 사과','prism','사과를 하나씩 눌러 합 10을 만드세요. 초과하면 선택 취소와 -3초'],
+ ['train','폭주 기관차','prism','수확 점수 ×4, 성공마다 +1초. 콤보 제한 2초, 콤보가 끊기면 -5초']
+].map(([id,name,tier,desc])=>({id,name,tier,desc}));
+let aug = freshAug();
+function freshAug(){return {owned:new Set(),prism:null,target:10,success:0,removed:0,nextRain:50,peak:0,first:[],taps:[],choosing:false,lastTick:Date.now()};}
+function has(id){return gameMode==='augment' && aug.owned.has(id);}
+const tiers={bronze:'브론즈',gold:'골드',diamond:'다이아몬드',prism:'프리즘'};
+const augDialog=document.createElement('dialog');
+augDialog.id='augmentDialog';
+document.body.append(augDialog);
+augDialog.addEventListener('cancel',e=>e.preventDefault());
+const augBar=document.createElement('details');
+augBar.id='augmentBar';
+document.getElementById('gameWrapper').after(augBar);
+function renderAug(){
+ augBar.hidden=gameMode!=='augment';
+ augBar.replaceChildren();
+ const title=document.createElement('summary');title.textContent='✨ 보유 능력 '+aug.owned.size+'개 · 설명 보기';augBar.append(title);
+ for(const id of aug.owned){const a=AUGMENTS.find(x=>x.id===id);const p=document.createElement('p');p.className='aug-'+a.tier;p.textContent=a.name+' · '+a.desc;augBar.append(p);}
+ if(gameMode==='augment')document.getElementById('modeRule').textContent='✨ 차별적인 능력 · '+(aug.prism?AUGMENTS.find(a=>a.id===aug.prism).name:'합 10')+(has('reverse')?' · 목표 '+aug.target:'');
+}
+function pickCandidates(random=Math.random){
+ const pool=AUGMENTS.filter(a=>!aug.owned.has(a.id)&&(!aug.prism||a.tier!=='prism'));
+ const result=[];
+ for(let n=0;n<3&&pool.length;n++){
+  const roll=random();let tier=roll<.01?'prism':roll<.16?'diamond':roll<.51?'gold':'bronze';
+  let choices=pool.filter(a=>a.tier===tier);
+  if(!choices.length)choices=pool.filter(a=>a.tier!=='prism');
+  if(!choices.length)break;
+  const a=choices[Math.floor(random()*choices.length)];result.push(a);pool.splice(pool.indexOf(a),1);
+ }
+ return result;
+}
+function offerAug(after=()=>{}){
+ const choices=pickCandidates();if(!choices.length){after();return;}
+ cancelSelection();aug.first=[];aug.taps=[];apples.forEach(a=>a.classList.remove('held'));
+ aug.choosing=true;refilling=true;refillStarted=Date.now();updateItems();
+ augDialog.innerHTML='<h2>✨ 능력을 골라주세요</h2><p>한 판 동안 계속 유지돼요 · 선택 중 시간 정지</p><div class="augChoices"></div>';
+ for(const a of choices){const b=document.createElement('button');b.className='augCard aug-'+a.tier;b.innerHTML='<small>'+tiers[a.tier]+'</small><strong>'+a.name+'</strong><span>'+a.desc+'</span>';b.onclick=()=>{
+   const paused=Date.now()-refillStarted;
+   if(lastSuccessTime)lastSuccessTime+=paused;
+   if(comboBoostActive)comboBoostEnd+=paused;if(itemBoostActive)itemBoostEnd+=paused;if(freezeActive)freezeEnd+=paused;if(hintActive)hintEnd+=paused;
+   aug.owned.add(a.id);if(a.tier==='prism')aug.prism=a.id;
+   if(a.id==='money'){score=Math.max(score,50);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);timerText.textContent='∞';}
+   aug.choosing=false;refilling=false;augDialog.close();markSpecial();renderAug();updateItems();after();
+  };augDialog.querySelector('.augChoices').append(b);}
+ augDialog.showModal();
+}
+const baseStart=startGame;
+startGame=function(){if(augDialog.open)augDialog.close();aug=freshAug();baseStart();renderAug();if(gameMode==='augment')offerAug();};
+const baseRecordKey=recordKey;
+recordKey=function(){return gameMode==='augment'?'chapple-best-score-augment':baseRecordKey();};
+const baseValid=isValidSum;
+isValidSum=function(sum){if(gameMode!=='augment')return baseValid(sum);return sum>0&&(has('multiple')?sum%10===0:sum===(has('reverse')?aug.target:10));};
+const baseCombo=getComboLimit;
+getComboLimit=function(c=combo){if(has('train'))return 2000;return Math.max(2000,baseCombo(c)+(has('breath')?500:0)-(has('multiple')?1000:0));};
+const baseMultiplier=getMultiplier;
+getMultiplier=function(){if(gameMode!=='augment')return baseMultiplier();return (comboBoostActive?(has('blue')?2.5:2):1)*(itemBoostActive?(has('double')?2:1.5):1)*(has('reverse')||has('money')?3:has('train')?4:1)*(has('danger')&&!has('money')&&timeLeft<=10?2:1)*(has('master')?1.2:1);};
+const baseBuild=buildBoard;
+buildBoard=function(){baseBuild();if(gameMode==='augment'){
+ if(has('reverse')&&!findValidRectangles().length){[5,5,5,5].forEach((v,i)=>{apples[i].dataset.value=v;apples[i].textContent=v;});}
+ markSpecial();if(has('orchard'))timeLeft+=3;
+}};
+function markSpecial(){
+ apples.forEach(a=>{delete a.dataset.special;a.style.removeProperty('box-shadow');});
+ const slots=apples.filter(a=>!a.classList.contains('removed'));
+ for(let i=slots.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[slots[i],slots[j]]=[slots[j],slots[i]];}
+ function mark(n,type,color){for(let i=0;i<n&&slots.length;i++){const a=slots.pop();a.dataset.special=type;a.style.boxShadow='inset 0 0 0 3px '+color;}}
+ if(has('rich')||has('golden'))mark(has('rich')?5:3,'gold','#e6ae16');if(has('frost'))mark(2,'ice','#49cdeb');if(has('gift'))mark(1,'gift','#b773e4');
+}
+const baseClear=checkClear;
+checkClear=function(){if(gameMode!=='augment')return baseClear();if(!playing||refilling)return;
+ if(has('rain')&&aug.removed>=aug.nextRain){aug.nextRain+=50;offerAug(()=>checkClear());return;}
+ if(!augHasMove())offerAug(()=>refillBoard());
+};
+function augHasMove(){
+ const live=apples.filter(a=>!a.classList.contains('removed'));
+ if(has('balance')){const seen=new Set();for(const a of live){const v=Number(a.dataset.value);if(seen.has(v))return true;seen.add(v);}return balancePair()!==null;}
+ if(has('solo')){const sums=new Set([0]);for(const a of live){for(const s of [...sums])if(s+Number(a.dataset.value)<=10)sums.add(s+Number(a.dataset.value));}return sums.has(10);}
+ return findValidRectangles().length>0;
+}
+function balancePair(){
+ const bySum=new Map();
+ for(let top=0;top<ROWS;top++)for(let bottom=top;bottom<ROWS;bottom++)for(let left=0;left<COLS;left++)for(let right=left;right<COLS;right++){
+ const cells=[];let sum=0;for(let r=top;r<=bottom;r++)for(let c=left;c<=right;c++){const a=apples[r*COLS+c];if(!a.classList.contains('removed')){cells.push(a);sum+=Number(a.dataset.value);}}
+ if(!sum)continue;const prior=bySum.get(sum)||[];for(const p of prior)if(!p.some(a=>cells.includes(a)))return [p,cells];prior.push(cells);bySum.set(sum,prior);
+ }return null;
+}
+const baseTimer=startTimer;
+startTimer=function(){if(gameMode!=='augment')return baseTimer();if(timerStarted)return;timerStarted=true;updateItems();timerInterval=setInterval(()=>{
+ if(!playing||refilling)return;
+ if(!freezeActive){if(has('money')){score=Math.max(0,score-2);scoreText.textContent=formatScore(score);if(score<=0){timeLeft=0;endGame();}}else{timeLeft=Math.max(0,timeLeft-1);if(!timeLeft)endGame();}}
+ timerText.textContent=has('money')?'∞':timeLeft;
+ },1000);};
+const baseEnd=endGame;
+endGame=function(){if(has('money')&&score<=0){score=aug.peak;timeLeft=0;}baseEnd();};
+function augSuccess(input){
+ let selected=[...new Set(input)];const original=[...selected];const now=Date.now();
+ combo=lastSuccessTime&&now-lastSuccessTime<=getComboLimit()?combo+1:1;lastSuccessTime=now;comboText.textContent=combo;
+ let extra=0;const n=original.length;const rows=original.map(a=>+a.dataset.row),cols=original.map(a=>+a.dataset.col);
+ if(has('harvest'))extra+=n>=10?50:n>=6?10:n>=4?5:n===3?3:0;
+ if(has('row')&&n>1&&new Set(rows).size===1)extra+=10;if(has('col')&&n>1&&new Set(cols).size===1)extra+=10;
+ if(has('streak')&&combo>=10)extra+=5;if(has('steady'))extra++;
+ if(has('space')){let empty=0;for(let r=Math.min(...rows);r<=Math.max(...rows);r++)for(let c=Math.min(...cols);c<=Math.max(...cols);c++)if(apples[r*COLS+c].classList.contains('removed'))empty++;if(empty>=3)extra+=8;}
+ if(has('chain'))for(const a of original){const r=+a.dataset.row,c=+a.dataset.col;for(const [dr,dc]of [[0,1],[0,-1],[1,0],[-1,0]]){const nr=r+dr,nc=c+dc;if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS){const b=apples[nr*COLS+nc];if(!b.classList.contains('removed')&&!selected.includes(b))selected.push(b);}}}
+ let base=0;for(const a of selected){const r=+a.dataset.row,c=+a.dataset.col;base+=has('edge')&&(r===0||r===ROWS-1||c===0||c===COLS-1)?5:1;
+ if(a.dataset.special==='gold')extra+=has('rich')?10:5;if(a.dataset.special==='ice')timeLeft+=2;if(a.dataset.special==='gift')document.getElementById('giftNotice').textContent=giveReward();
+ a.classList.remove('selected','held','hint');a.classList.add('removed');delete a.dataset.special;a.style.removeProperty('box-shadow');}
+ const earned=(base+extra)*getMultiplier();score+=earned;aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);aug.success++;aug.removed+=selected.length;
+ if(has('rest')&&aug.success%5===0)timeLeft++;if(has('rhythm')&&aug.success%10===0)timeLeft+=3;if(has('train'))timeLeft++;
+ if(combo%(has('ignition')?8:10)===0){activateComboBoost();if(has('fire'))comboBoostEnd+=3000;}else if(has('fuel')&&comboBoostActive)comboBoostEnd=Math.min(now+15000,comboBoostEnd+500);
+ const gifts=[];while(score>=nextTimeBonus){nextTimeBonus+=100;if(!has('money'))timeLeft+=has('bonus')?25:20;gifts.push(giveReward());if(has('gifts'))gifts.push(giveReward());}
+ if(gifts.length){showMilestone(nextTimeBonus-100,gifts);document.getElementById('giftNotice').textContent=gifts.join(' · ');}
+ if(has('reverse'))aug.target=aug.target===20?10:aug.target+5;
+ if(has('rain'))rainFill();
+ currentSumText.textContent='0';statusText.textContent='🔥 '+combo+'콤보! +'+formatScore(earned)+'점';timerText.textContent=has('money')?'∞':timeLeft;
+ updateItems();updateRecord();updateMultiplier();renderAug();if(hintActive)showHints();checkClear();
+}
+function rainFill(){
+ for(let c=0;c<COLS;c++){
+ const values=[];for(let r=ROWS-1;r>=0;r--){const a=apples[r*COLS+c];if(!a.classList.contains('removed'))values.push({v:a.dataset.value,s:a.dataset.special});}
+ for(let r=ROWS-1;r>=0;r--){const a=apples[r*COLS+c],data=values[ROWS-1-r];a.dataset.value=data?data.v:1+Math.floor(Math.random()*9);a.textContent=a.dataset.value;a.classList.remove('removed','selected','held','hint');delete a.dataset.special;a.style.removeProperty('box-shadow');if(data?.s){a.dataset.special=data.s;a.style.boxShadow='inset 0 0 0 3px '+({gold:'#e6ae16',ice:'#49cdeb',gift:'#b773e4'}[data.s]);}if(!data)a.animate([{opacity:0,transform:'translateY(-18px)'},{opacity:1,transform:'translateY(0)'}],{duration:300});}
+ }
+}
+document.addEventListener('pointerup',e=>{
+ if(gameMode!=='augment'||has('solo')||e.pointerId!==activePointerId||!dragging||!playing||refilling)return;
+ e.stopImmediatePropagation();const picked=apples.filter(a=>a.classList.contains('selected')&&!a.classList.contains('removed'));cancelSelection();if(!picked.length)return;
+ const sum=picked.reduce((s,a)=>s+Number(a.dataset.value),0);
+ if(has('balance')){
+  if(!aug.first.length){aug.first=picked;picked.forEach(a=>a.classList.add('held'));statusText.textContent='⚖️ 첫 영역 합 '+sum+' · 같은 합의 다른 영역을 골라주세요';return;}
+  const first=aug.first;aug.first=[];first.forEach(a=>a.classList.remove('held'));
+  if(!picked.some(a=>first.includes(a))&&sum===first.reduce((s,a)=>s+Number(a.dataset.value),0))augSuccess([...first,...picked]);else statusText.textContent='⚖️ 두 영역의 합이 같아야 해요. 다시 골라주세요.';
+ }else if(isValidSum(sum))augSuccess(picked);
+},true);
+game.addEventListener('pointerdown',e=>{
+ if(!has('solo'))return;e.stopImmediatePropagation();e.preventDefault();if(!playing||refilling||!e.isPrimary||e.button!==0)return;
+ const a=e.target.closest('.apple');if(!a||a.classList.contains('removed'))return;if(!timerStarted)startTimer();
+ if(aug.taps.includes(a)){aug.taps=aug.taps.filter(x=>x!==a);a.classList.remove('held');}else{aug.taps.push(a);a.classList.add('held');}
+ const sum=aug.taps.reduce((s,x)=>s+Number(x.dataset.value),0);currentSumText.textContent=sum;
+ if(sum===10){const cells=aug.taps;aug.taps=[];augSuccess(cells);}else if(sum>10){aug.taps.forEach(x=>x.classList.remove('held'));aug.taps=[];currentSumText.textContent='0';timeLeft=Math.max(0,timeLeft-3);statusText.textContent='합 10 초과! -3초';if(!timeLeft)endGame();}
+},true);
+const baseHints=showHints;
+showHints=function(){if(gameMode!=='augment')return baseHints();apples.forEach(a=>a.classList.remove('hint'));
+ if(has('balance')){const pair=balancePair();if(pair)pair.flat().forEach(a=>a.classList.add('hint'));return;}
+ if(has('solo')){const sums=new Map([[0,[]]]);for(const a of apples.filter(a=>!a.classList.contains('removed'))){for(const [s,cells]of [...sums]){const n=s+Number(a.dataset.value);if(n<=10&&!sums.has(n))sums.set(n,[...cells,a]);}if(sums.has(10))break;}sums.get(10)?.forEach(a=>a.classList.add('hint'));return;}
+ // Existing rectangle finder uses inclusive row/column bounds.
+ const rects=findValidRectangles().slice(0,has('map')?5:3);for(const rect of rects)for(let r=rect.top;r<=rect.bottom;r++)for(let c=rect.left;c<=rect.right;c++){const a=apples[r*COLS+c];if(!a.classList.contains('removed'))a.classList.add('hint');}
+};
+for(const [button,type]of [[boostItem,'boost'],[freezeItem,'freeze'],[hintItem,'hint']])button.addEventListener('click',e=>{
+ if(gameMode!=='augment')return;e.stopImmediatePropagation();if(!playing||refilling||!timerStarted||button.disabled)return;
+ const free=has('thrift')&&Math.random()<.25,now=Date.now();
+ if(type==='boost'){if(!free)boostCount--;itemBoostActive=true;itemBoostEnd=now+10000+(has('juice')?3000:0);}
+ if(type==='freeze'){if(!free)freezeCount--;freezeActive=true;freezeEnd=now+10000+(has('ice')?3000:0);document.body.classList.add('freeze');}
+ if(type==='hint'){if(!free)hintCount--;hintActive=true;hintEnd=now+10000+(has('guide')?5000:0);showHints();}
+ updateItems();updateMultiplier();statusText.textContent=(free?'✨ 수량 보존! ':'')+'아이템 사용!';
+},true);
+// Run before the legacy combo-expiry callback by keeping its clock protected.
+setInterval(()=>{const now=Date.now(),delta=now-aug.lastTick;aug.lastTick=now;if(gameMode!=='augment'||!playing||refilling)return;
+ if(has('still')&&freezeActive&&lastSuccessTime)lastSuccessTime+=delta;
+},20);
+bestScore=readBestScore();startGame();updateRecord();
+
 </script>
 
 </body>
