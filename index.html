@@ -497,7 +497,7 @@ body.freeze #game {
 
 
 /* Same 17 × 10 board, scaled to fit phones without horizontal scrolling. */
-#game { touch-action: none; -webkit-user-select: none; }
+#game { touch-action: pinch-zoom; -webkit-user-select: none; }
 #helpButton { min-width: 44px; min-height: 44px; }
 .mobileTip { display: none; }
 @media (max-width: 900px) {
@@ -552,7 +552,7 @@ body { padding-right: 68px; }
 
 /* Touch gestures beginning inside the board belong only to the game. */
 #gameWrapper, #game, #game .apple {
-    touch-action: none;
+    touch-action: pinch-zoom;
     overscroll-behavior: none;
     -webkit-touch-callout: none;
 }
@@ -681,6 +681,12 @@ body { padding-right: 68px; }
 
 
 
+
+
+
+
+
+
 /* CATALOG STYLES START */
 #augmentDialog h2:focus{outline:none}.augCard:focus-visible{outline:2px solid #557f39;outline-offset:3px}
 #augmentBar {display:flex;justify-content:center;gap:10px;background:transparent;padding:4px;margin:10px auto;}
@@ -700,8 +706,6 @@ body { padding-right: 68px; }
 @media(min-width:1100px) and (min-height:800px){#augmentCatalog table{font-size:13px}#augmentCatalog th,#augmentCatalog td{padding:6px}}
 @media(max-width:900px){#augmentCatalog{width:94vw}.catalogTableWrap{grid-template-columns:1fr}#augmentCatalog table{font-size:13px}#augmentCatalog th,#augmentCatalog td{padding:9px}}
 /* CATALOG STYLES END */
-
-
 
 /* COMPACT PLAY LAYOUT START */
 body {padding:8px 68px 8px 10px;}
@@ -2884,17 +2888,6 @@ updateRecord();
 updateEffects();
 
 
-/* Also suppress native touch scrolling on mobile browsers while leaving
-   all gestures that start outside the board available for page scrolling. */
-const boardTouchSurface = document.getElementById("gameWrapper");
-function preventBoardScroll(event) {
-    if (event.target.closest("button")) return;
-    if (event.cancelable) event.preventDefault();
-}
-boardTouchSurface.addEventListener("touchstart", preventBoardScroll, { passive: false });
-boardTouchSurface.addEventListener("touchmove", preventBoardScroll, { passive: false });
-
-
 let milestoneTimer;
 function showMilestone(points, gifts) {
     const badge = document.getElementById("milestoneBadge");
@@ -2964,6 +2957,38 @@ game.addEventListener("pointercancel", hideSpotlight);
 // Keep the last touch position illuminated after lifting a finger.
 window.addEventListener("blur", hideSpotlight);
 window.addEventListener("resize", hideSpotlight);
+
+// Let the browser own two-finger zoom; a second finger cancels game selection.
+const boardTouches = new Set();
+let boardPinching = false;
+let pendingSoloTouch = null;
+window.addEventListener('pointerdown', event => {
+ if(event.pointerType!=='touch')return;
+ boardTouches.add(event.pointerId);
+ if(boardTouches.size>1){boardPinching=true;pendingSoloTouch=null;cancelSelection();}
+ if(boardPinching)event.stopImmediatePropagation();
+}, {capture:true,passive:true});
+window.addEventListener('pointermove', event => {
+ if(event.pointerType!=='touch')return;
+ if(pendingSoloTouch&&Math.hypot(event.clientX-pendingSoloTouch.clientX,event.clientY-pendingSoloTouch.clientY)>12)pendingSoloTouch=null;
+ if(boardPinching){cancelSelection();event.stopImmediatePropagation();}
+}, {capture:true,passive:true});
+function finishBoardTouch(event){
+ if(event.pointerType!=='touch')return;
+ const wasPinching=boardPinching;
+ const tap=pendingSoloTouch;
+ pendingSoloTouch=null;
+ boardTouches.delete(event.pointerId);
+ if(!boardTouches.size)boardPinching=false;
+ if(wasPinching){cancelSelection();event.stopImmediatePropagation();return;}
+ if(event.type==='pointerup'&&tap&&tap.pointerId===event.pointerId&&Math.hypot(event.clientX-tap.clientX,event.clientY-tap.clientY)<=12){
+  performSoloPick(tap);
+  event.stopImmediatePropagation();
+ }
+}
+window.addEventListener('pointerup',finishBoardTouch,{capture:true,passive:true});
+window.addEventListener('pointercancel',finishBoardTouch,{capture:true,passive:true});
+window.addEventListener('blur',()=>{boardTouches.clear();boardPinching=false;pendingSoloTouch=null;cancelSelection();});
 
 // Abilities last for one run. Prism changes are mutually exclusive.
 const AUGMENTS = [
@@ -3195,12 +3220,17 @@ document.addEventListener('pointerup',e=>{
   if(!picked.some(a=>first.includes(a))&&sum===first.reduce((s,a)=>s+Number(a.dataset.value),0))augSuccess([...first,...picked]);else statusText.textContent='⚖️ 두 영역의 합이 같아야 해요. 다시 골라주세요.';
  }else if(isValidSum(sum))augSuccess(picked);
 },true);
-game.addEventListener('pointerdown',e=>{
+function performSoloPick(e){
  if(!has('solo'))return;e.stopImmediatePropagation();e.preventDefault();if(!playing||refilling||!e.isPrimary||e.button!==0)return;
  const a=e.target.closest('.apple');if(!a||a.classList.contains('removed'))return;if(!timerStarted)startTimer();
  if(aug.taps.includes(a)){aug.taps=aug.taps.filter(x=>x!==a);a.classList.remove('held');}else{aug.taps.push(a);a.classList.add('held');}
  const sum=aug.taps.reduce((s,x)=>s+Number(x.dataset.value),0);currentSumText.textContent=sum;
  if(sum===10){const cells=aug.taps;aug.taps=[];augSuccess(cells);}else if(sum>10){aug.taps.forEach(x=>x.classList.remove('held'));aug.taps=[];currentSumText.textContent='0';timeLeft=Math.max(0,timeLeft-3);statusText.textContent='합 10 초과! -3초';if(!timeLeft)endGame();}
+}
+game.addEventListener('pointerdown',e=>{
+ if(!has('solo'))return;
+ if(e.pointerType==='touch'){e.stopImmediatePropagation();pendingSoloTouch=e;return;}
+ performSoloPick(e);
 },true);
 const baseHints=showHints;
 showHints=function(){if(gameMode!=='augment')return baseHints();apples.forEach(a=>a.classList.remove('hint'));
