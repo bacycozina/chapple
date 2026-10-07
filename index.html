@@ -616,6 +616,7 @@ body { padding-right: 68px; }
     #gameWrapper:has(.refillIn) #refillNotice { opacity:0; }
     #game.refillIn .apple { animation:none; }
 }
+#modeButton { font-size: 26px; line-height: 1; }
 </style>
 </head>
 
@@ -625,7 +626,7 @@ body { padding-right: 68px; }
 <div class="titleRow">
     <h1>🍎 차플게임</h1>
     <button id="helpButton" type="button" aria-label="플레이 방법과 규칙 보기" aria-haspopup="dialog" aria-controls="helpDialog">?</button>
-    <button id="modeButton" type="button" aria-haspopup="dialog" aria-controls="modeDialog">모드</button>
+    <button id="modeButton" type="button" aria-label="모드 선택" title="모드 선택" aria-haspopup="dialog" aria-controls="modeDialog">🍏</button>
 </div>
 <p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
