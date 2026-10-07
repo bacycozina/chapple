@@ -626,6 +626,13 @@ body { padding-right: 68px; }
 #darkMask { display:none; position:absolute; inset:0; z-index:3; pointer-events:none; border-radius:15px; background:#080909; }
 .darkMode #darkMask { display:block; }
 .darkMode #darkMask.lit { background:radial-gradient(circle var(--light-radius,85px) at var(--light-x,-1000px) var(--light-y,-1000px), rgba(0,0,0,.02) 0%, rgba(0,0,0,.12) 27%, rgba(0,0,0,.48) 57%, rgba(0,0,0,.83) 82%, #080909 100%); }
+
+.modeCard { display:flex; align-items:center; gap:14px; border-bottom:1px solid #dce8cb; padding:12px 0; }
+.modeCard > div { flex:1; min-width:0; }
+#modeDialog .modeCard h3 { margin:0 0 5px; font-size:16px; }
+#modeDialog .modeCard p { margin:0; font-size:13px; }
+.modePlay { flex:none; min-height:44px; padding:10px 12px; border:0; border-radius:10px; color:white; background:#557f39; font-weight:bold; cursor:pointer; }
+.modePlay:focus-visible { outline:3px solid #2196f3; outline-offset:2px; }
 </style>
 </head>
 
@@ -658,22 +665,12 @@ body { padding-right: 68px; }
 <p id="modeRule">🍎 클래식 · 합 10</p>
 <dialog id="modeDialog" aria-labelledby="modeTitle">
 <h2 id="modeTitle" tabindex="-1" autofocus>🎮 모드 선택</h2>
-<p><strong>🍎 클래식</strong><br>합 10을 만들어요. 시간제한, 점수와 콤보에 도전해요.</p>
-<p><strong>🔢 차곡차곡</strong><br>합이 10·20·30…이면 지워져요. 크게 묶어 높은 점수를 노려보세요.</p>
-<p><strong>🔦 차단막</strong><br>까만 사과판에서 마우스 주변 약 9칸만 동그랗게 보여요. 모바일은 마지막으로 누른 곳을 계속 비춰요. 합 10을 찾아보세요!</p>
-<p><strong>🌱 초보자</strong><br>시간제한도 점수도 없이 합 10을 연습해요. 콤보와 아이템 없이 천천히 즐길 수 있어요.</p>
-<p>어떤 모드든 조합이 없으면 사과판이 새로 생겨요.</p>
-<label for="gameMode">플레이할 모드</label>
-<div class="modePlayRow">
-<select id="gameMode">
-<option value="classic">🍎 클래식</option>
-<option value="multiples">🔢 차곡차곡</option>
-<option value="dark">🔦 차단막</option>
-<option value="beginner">🌱 초보자</option>
-</select>
-<button id="modeStart" type="button">플레이</button>
-</div>
-<p class="modeNote">플레이를 누르면 선택한 모드로 새 판이 시작되고 이 창이 닫혀요. 저장된 최고기록과 보유 아이템은 유지돼요. 이 창을 열어도 진행 중인 게임 시간은 계속 흘러요.</p>
+<div class="modeCard"><div><h3>🍎 클래식</h3><p>합 10을 만들어요. 시간제한, 점수와 콤보에 도전해요.</p></div><button type="button" class="modePlay" data-mode="classic" aria-label="클래식 플레이">플레이</button></div>
+<div class="modeCard"><div><h3>🔢 차곡차곡</h3><p>합이 10·20·30…이면 지워져요. 크게 묶어 높은 점수를 노려보세요.</p></div><button type="button" class="modePlay" data-mode="multiples" aria-label="차곡차곡 플레이">플레이</button></div>
+<div class="modeCard"><div><h3>🔦 차단막</h3><p>마우스 주변 약 9칸만 동그랗게 보여요. 모바일은 마지막으로 누른 곳을 계속 비춰요. 합 10을 찾아보세요!</p></div><button type="button" class="modePlay" data-mode="dark" aria-label="차단막 플레이">플레이</button></div>
+<div class="modeCard"><div><h3>🌱 초보자</h3><p>시간제한과 점수 없이 합 10을 연습해요. 콤보와 아이템 없이 천천히 즐겨요.</p></div><button type="button" class="modePlay" data-mode="beginner" aria-label="초보자 플레이">플레이</button></div>
+<p class="modeNote">플레이를 누르면 새 판이 시작되고 창이 닫혀요. 선택한 모드는 다음 방문에도 유지돼요. 최고기록과 아이템은 그대로예요.</p>
+<p class="modeNote">이 창을 열어도 진행 중인 게임 시간은 계속 흘러요.</p>
 <button id="modeClose" type="button">닫기</button>
 </dialog>
 <div id="practiceSum">선택 합 <strong id="practiceSumValue">0</strong> / 10</div>
@@ -951,7 +948,18 @@ const ITEM_TIME =
    게임 상태
 ========================================= */
 
+const MODE_KEY = "chapple-mode";
+const MODE_NAMES = {
+    classic: "🍎 클래식 · 합 10",
+    multiples: "🔢 차곡차곡 · 합 10·20·30…",
+    dark: "🔦 차단막 · 빛을 따라 합 10 찾기",
+    beginner: "🌱 초보자 · 시간과 점수 없이 합 10 연습"
+};
 let gameMode = "classic";
+try {
+    const savedMode = localStorage.getItem(MODE_KEY);
+    if (Object.hasOwn(MODE_NAMES, savedMode)) gameMode = savedMode;
+} catch {}
 function isValidSum(sum) {
     return sum > 0 && (gameMode === "multiples" ? sum % 10 === 0 : sum === 10);
 }
@@ -1070,6 +1078,7 @@ function saveInventory() {
 ========================================= */
 
 function startGame() {
+    document.getElementById("modeRule").textContent = MODE_NAMES[gameMode];
     document.body.classList.toggle("darkMode", gameMode === "dark");
     hideSpotlight();
     refillVersion++;
@@ -1409,7 +1418,7 @@ function checkTimeBonus() {
 ========================================= */
 
 function updateItems() {
-    document.getElementById("gameMode").disabled = false;
+
     saveInventory();
 
     boostCountText.textContent =
@@ -2790,26 +2799,23 @@ function showMilestone(points, gifts) {
 const modeDialog = document.getElementById("modeDialog");
 document.getElementById("modeButton").addEventListener("click", () => {
     cancelSelection();
-    document.getElementById("gameMode").value = gameMode;
     modeDialog.showModal();
 });
 document.getElementById("modeClose").addEventListener("click", () => modeDialog.close());
-document.getElementById("modeStart").addEventListener("click", () => {
-    const choice = document.getElementById("gameMode").value;
-    gameMode = ["classic", "multiples", "beginner", "dark"].includes(choice) ? choice : "classic";
-    bestScore = readBestScore();
-    document.getElementById("modeRule").textContent = {
-        dark: "🔦 차단막 · 빛을 따라 합 10 찾기",
-        classic: "🍎 클래식 · 합 10",
-        multiples: "🔢 차곡차곡 · 합 10·20·30…",
-        beginner: "🌱 초보자 · 시간과 점수 없이 합 10 연습"
-    }[gameMode];
-    modeDialog.close();
-    clearTimeout(milestoneTimer);
-    game.classList.remove("milestone");
-    document.getElementById("milestoneBadge").hidden = true;
-    startGame();
-    updateRecord();
+document.querySelectorAll(".modePlay").forEach(button => {
+    button.addEventListener("click", () => {
+        const choice = button.dataset.mode;
+        if (!Object.hasOwn(MODE_NAMES, choice)) return;
+        gameMode = choice;
+        try { localStorage.setItem(MODE_KEY, gameMode); } catch {}
+        bestScore = readBestScore();
+        modeDialog.close();
+        clearTimeout(milestoneTimer);
+        game.classList.remove("milestone");
+        document.getElementById("milestoneBadge").hidden = true;
+        startGame();
+        updateRecord();
+    });
 });
 
 function hideSpotlight() {
