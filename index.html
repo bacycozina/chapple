@@ -648,6 +648,32 @@ body { padding-right: 68px; }
 #augmentBar[hidden]{display:none}#augmentBar p {padding:8px;border-radius:8px;margin:6px 0;}
 .apple.held {outline:3px solid #af70ff;background:#daccff;}
 @media(max-width:520px){.augChoices{grid-template-columns:1fr}.augCard{gap:5px;padding:12px}.augCard strong{font-size:17px}#augmentDialog{padding:16px}}
+
+
+
+
+
+
+
+
+
+/* CATALOG STYLES START */
+#augmentDialog h2:focus{outline:none}.augCard:focus-visible{outline:2px solid #557f39;outline-offset:3px}
+#augmentInfoButton {width:32px;height:32px;border:2px solid #557f39;border-radius:50%;background:#fff9db;color:#557f39;font-size:22px;font-weight:bold;cursor:pointer;margin-right:8px;vertical-align:middle;}
+.ownedAugments {display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.ownedAugments span{padding:4px 8px;border-radius:12px;font-size:12px}
+#augmentCatalog {box-sizing:border-box;width:96vw;max-width:1800px;max-height:94dvh;overflow:auto;padding:18px;border:0;border-radius:18px;background:#fffdf6;color:#263b2b;}
+#augmentCatalog::backdrop{background:#10241bd9}#augmentCatalog h2{margin:0 70px 8px 0;font-size:22px;text-align:left}
+#catalogClose{position:absolute;right:18px;top:14px;min-height:36px;padding:5px 18px;border:0;border-radius:10px;background:#557f39;color:white;cursor:pointer}
+#catalogOwned{text-align:left;font-size:13px;margin:8px 0 12px;line-height:1.5}
+.catalogTableWrap{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
+#augmentCatalog table{border-collapse:collapse;table-layout:fixed;width:100%;font-size:12px;text-align:left;line-height:1.35}
+#augmentCatalog th,#augmentCatalog td{padding:4px 6px;border:1px solid #dddcd0;overflow-wrap:anywhere;vertical-align:top}
+#augmentCatalog thead th:first-child{width:33%}#augmentCatalog thead th{background:#e5eddb}
+#augmentCatalog small{font-size:10px;font-weight:normal}.catalogReason{display:block;color:#76573a;margin-top:5px}
+#augmentCatalog .catalogHas td{background:#edf8e7}#augmentCatalog .catalogHas small{font-weight:bold;color:#236125}
+@media(min-width:1100px) and (min-height:800px){#augmentCatalog table{font-size:13px}#augmentCatalog th,#augmentCatalog td{padding:6px}}
+@media(max-width:900px){#augmentCatalog{width:94vw}.catalogTableWrap{grid-template-columns:1fr}#augmentCatalog table{font-size:13px}#augmentCatalog th,#augmentCatalog td{padding:9px}}
+/* CATALOG STYLES END */
 </style>
 </head>
 
@@ -669,7 +695,6 @@ body { padding-right: 68px; }
     <p>🍎 조합이 없으면 새 사과판! <strong>시간이 끝날 때까지</strong> 계속해요.</p>
     <p>🌱 차근차근 연습모드는 시간·점수·콤보·아이템 없이 연습해요.</p>
     <h3>🎒 아이템</h3>
-
     <p>🍇 <strong>점수 부스트:</strong> 10초 동안 점수 ×1.5!</p>
     <p>🧊 <strong>시간 동결:</strong> 10초 동안 게임 시간이 멈춰요. 콤보 시간은 계속 흘러요.</p>
     <p>🍊 <strong>조합 힌트:</strong> 10초 동안 현재 모드에서 지울 수 있는 조합의 사과를 🍊로 표시해요.</p>
@@ -684,7 +709,7 @@ body { padding-right: 68px; }
 <div class="modeCard"><div><h3>🔢 차곡차곡</h3><p>합이 10·20·30…이면 지워져요. 크게 묶어 높은 점수를 노려보세요.</p></div><button type="button" class="modePlay" data-mode="multiples" aria-label="차곡차곡 플레이">플레이</button></div>
 <div class="modeCard"><div><h3>🔦 차단막</h3><p>마우스 주변 약 9칸만 동그랗게 보여요. 모바일은 마지막으로 누른 곳을 계속 비춰요. 합 10을 찾아보세요!</p></div><button type="button" class="modePlay" data-mode="dark" aria-label="차단막 플레이">플레이</button></div>
 <div class="modeCard"><div><h3>🌱 차근차근 연습모드</h3><p>시간제한과 점수 없이 합 10을 연습해요. 콤보와 아이템 없이 천천히 즐겨요.</p></div><button type="button" class="modePlay" data-mode="beginner" aria-label="차근차근 연습모드 플레이">플레이</button></div>
-<div class="modeOption"><strong>✨ 차별적인 능력</strong><p>새 판마다 영구 능력을 선택해요. 프리즘 확률 1%, 한 판에 하나! 능력은 다음 게임에 초기화돼요.</p><button class="modePlay" data-mode="augment">플레이</button></div>
+<div class="modeCard"><div><h3>✨ 차별적인 능력</h3><p>새 판마다 능력을 선택해요. 얻은 능력은 한 판 동안 유지돼요.</p></div><button type="button" class="modePlay" data-mode="augment" aria-label="차별적인 능력 플레이">플레이</button></div>
 <button id="modeClose" type="button">닫기</button>
 </dialog>
 <div id="practiceSum">선택 합 <strong id="practiceSumValue">0</strong> / 10</div>
@@ -2910,22 +2935,67 @@ let aug = freshAug();
 function freshAug(){return {owned:new Set(),prism:null,target:10,success:0,removed:0,nextRain:50,peak:0,first:[],taps:[],choosing:false,lastTick:Date.now()};}
 function has(id){return gameMode==='augment' && aug.owned.has(id);}
 const tiers={bronze:'브론즈',gold:'골드',diamond:'다이아몬드',prism:'프리즘'};
+// Symmetric exclusions: do not offer a rule that disables an owned ability,
+// or an ability that the current rules cannot use.
+const AUGMENT_CONFLICTS = [
+ ...['rest','frost','bonus','danger','orchard','rhythm'].map(id=>['money',id,'시간 대신 점수를 사용하므로 시간 관련 효과를 사용할 수 없어요.']),
+ ['train','breath','콤보 시간이 2초로 고정되어 시간 연장이 적용되지 않아요.'],
+ ...['space','orchard','golden','rich','frost','gift'].map(id=>['rain',id,'사과를 즉시 채우므로 빈칸·새 판 기반 능력과 함께 선택할 수 없어요.']),
+ ...['solo','balance'].map(id=>[id,'map','이 방식의 힌트는 한 조합만 보여줘서 힌트 개수 증가가 적용되지 않아요.']),
+ ['solo','space','사과를 하나씩 고르는 방식에는 선택 영역의 빈칸 효과를 적용하지 않아요.'],
+ ['golden','rich','같은 황금 사과 효과를 대체하므로 함께 선택할 수 없어요.']
+];
+function augmentBlockReason(id, owned=aug.owned){
+ if(owned.has(id))return '이미 보유한 능력이에요.';
+ const candidate=AUGMENTS.find(a=>a.id===id);
+ for(const other of owned){
+  const existing=AUGMENTS.find(a=>a.id===other);
+  if(candidate.tier==='prism'&&existing?.tier==='prism')return existing.name+' · 한 판에는 프리즘 하나만 사용할 수 있어요.';
+  const conflict=AUGMENT_CONFLICTS.find(([a,b])=>(a===id&&b===other)||(b===id&&a===other));
+  if(conflict)return existing.name+' · '+conflict[2];
+ }
+ return '';
+}
 const augDialog=document.createElement('dialog');
 augDialog.id='augmentDialog';
 document.body.append(augDialog);
 augDialog.addEventListener('cancel',e=>e.preventDefault());
-const augBar=document.createElement('details');
+const augBar=document.createElement('div');
 augBar.id='augmentBar';
 document.getElementById('gameWrapper').after(augBar);
+const catalogDialog=document.createElement('dialog');catalogDialog.id='augmentCatalog';
+catalogDialog.innerHTML='<h2>✨ 증강 도감</h2><button type="button" id="catalogClose" aria-label="증강 도감 닫기">닫기</button><p id="catalogOwned"></p><div class="catalogTableWrap"></div>';
+document.body.append(catalogDialog);
+catalogDialog.querySelector('#catalogClose').onclick=()=>catalogDialog.close();
+function renderCatalog(){
+ const owned=AUGMENTS.filter(a=>aug.owned.has(a.id));
+ catalogDialog.querySelector('#catalogOwned').textContent='보유 능력 '+owned.length+'개'+(owned.length?' · '+owned.map(a=>a.name).join(', '):' · 아직 없어요');
+ const wrap=catalogDialog.querySelector('.catalogTableWrap');wrap.replaceChildren();
+ for(let group=0;group<3;group++){
+ const table=document.createElement('table');table.innerHTML='<thead><tr><th scope="col">능력 · 등급</th><th scope="col">효과</th></tr></thead><tbody></tbody>';wrap.append(table);const tbody=table.querySelector('tbody');
+ for(const a of AUGMENTS.filter((a,index)=>index%3===group)){
+  const tr=document.createElement('tr'),name=document.createElement('th'),effect=document.createElement('td');
+  name.scope='row';name.className='aug-'+a.tier;name.textContent=a.name;effect.textContent=a.desc;
+  const reason=augmentBlockReason(a.id),state=document.createElement('small');state.textContent=aug.owned.has(a.id)?'✓ 보유 중':reason?'선택 제외':'미보유';state.title=reason;
+  state.textContent=tiers[a.tier]+' · '+state.textContent;
+  if(reason&&!aug.owned.has(a.id)){const note=document.createElement('details'),summary=document.createElement('summary'),text=document.createElement('small');note.className='catalogReason';summary.append(state);text.textContent=reason;note.append(summary,text);name.append(note);}
+  else name.append(document.createElement('br'),state);
+  if(aug.owned.has(a.id))tr.className='catalogHas';tr.append(name,effect);tbody.append(tr);
+ }
+ }
+}
 function renderAug(){
  augBar.hidden=gameMode!=='augment';
  augBar.replaceChildren();
- const title=document.createElement('summary');title.textContent='✨ 보유 능력 '+aug.owned.size+'개 · 설명 보기';augBar.append(title);
- for(const id of aug.owned){const a=AUGMENTS.find(x=>x.id===id);const p=document.createElement('p');p.className='aug-'+a.tier;p.textContent=a.name+' · '+a.desc;augBar.append(p);}
+ const button=document.createElement('button');button.id='augmentInfoButton';button.type='button';button.textContent='!';button.setAttribute('aria-label','전체 증강과 보유 능력 보기');button.onclick=()=>{renderCatalog();catalogDialog.showModal();};
+ const title=document.createElement('span');title.textContent='증강 도감 · 보유 '+aug.owned.size+'개';augBar.append(button,title);
+ const owned=document.createElement('div');owned.className='ownedAugments';
+ for(const id of aug.owned){const a=AUGMENTS.find(x=>x.id===id);const p=document.createElement('span');p.className='aug-'+a.tier;p.textContent=a.name;p.title=a.desc;owned.append(p);}augBar.append(owned);
+ if(catalogDialog.open)renderCatalog();
  if(gameMode==='augment')document.getElementById('modeRule').textContent='✨ 차별적인 능력 · '+(aug.prism?AUGMENTS.find(a=>a.id===aug.prism).name:'합 10')+(has('reverse')?' · 목표 '+aug.target:'');
 }
 function pickCandidates(random=Math.random){
- const pool=AUGMENTS.filter(a=>!aug.owned.has(a.id)&&(!aug.prism||a.tier!=='prism'));
+ const pool=AUGMENTS.filter(a=>!augmentBlockReason(a.id));
  const result=[];
  for(let n=0;n<3&&pool.length;n++){
   const roll=random();let tier=roll<.01?'prism':roll<.16?'diamond':roll<.51?'gold':'bronze';
@@ -2940,7 +3010,7 @@ function offerAug(after=()=>{}){
  const choices=pickCandidates();if(!choices.length){after();return;}
  cancelSelection();aug.first=[];aug.taps=[];apples.forEach(a=>a.classList.remove('held'));
  aug.choosing=true;refilling=true;refillStarted=Date.now();updateItems();
- augDialog.innerHTML='<h2>✨ 능력을 골라주세요</h2><p>한 판 동안 계속 유지돼요 · 선택 중 시간 정지</p><div class="augChoices"></div>';
+ augDialog.innerHTML='<h2 tabindex="-1" autofocus>✨ 능력을 골라주세요</h2><p>한 판 동안 계속 유지돼요 · 선택 중 시간 정지</p><div class="augChoices"></div>';
  for(const a of choices){const b=document.createElement('button');b.className='augCard aug-'+a.tier;b.innerHTML='<small>'+tiers[a.tier]+'</small><strong>'+a.name+'</strong><span>'+a.desc+'</span>';b.onclick=()=>{
    const paused=Date.now()-refillStarted;
    if(lastSuccessTime)lastSuccessTime+=paused;
@@ -2949,10 +3019,10 @@ function offerAug(after=()=>{}){
    if(a.id==='money'){score=Math.max(score,50);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);timerText.textContent='∞';}
    aug.choosing=false;refilling=false;augDialog.close();markSpecial();renderAug();updateItems();after();
   };augDialog.querySelector('.augChoices').append(b);}
- augDialog.showModal();
+ augDialog.showModal();augDialog.querySelector('h2').focus();
 }
 const baseStart=startGame;
-startGame=function(){if(augDialog.open)augDialog.close();aug=freshAug();baseStart();renderAug();if(gameMode==='augment')offerAug();};
+startGame=function(){if(augDialog.open)augDialog.close();if(catalogDialog.open)catalogDialog.close();aug=freshAug();baseStart();renderAug();if(gameMode==='augment')offerAug();};
 const baseRecordKey=recordKey;
 recordKey=function(){return gameMode==='augment'?'chapple-best-score-augment':baseRecordKey();};
 const baseValid=isValidSum;
