@@ -689,6 +689,8 @@ body { padding-right: 68px; }
 @media(max-width:900px){#augmentCatalog{width:94vw}.catalogTableWrap{grid-template-columns:1fr}#augmentCatalog table{font-size:13px}#augmentCatalog th,#augmentCatalog td{padding:9px}}
 /* CATALOG STYLES END */
 
+
+
 /* COMPACT PLAY LAYOUT START */
 body {padding:8px 68px 8px 10px;}
 .titleRow {gap:8px;margin-bottom:3px;}
@@ -699,7 +701,11 @@ body {padding:8px 68px 8px 10px;}
 #recordNotice {display:inline;height:auto;margin-left:6px;}
 #status {height:21px;min-height:21px;line-height:21px;font-size:12px;margin:0 0 3px;}
 #comboBarContainer {height:6px;margin:0 auto 5px;}
-#practiceSum {margin:2px 0;font-size:15px;}
+#scoreboardSlot {position:relative;height:28px;}
+#info {height:100%;}
+#practiceSum {position:absolute;inset:0;margin:0;font-size:15px;align-items:center;justify-content:center;gap:5px;}
+.beginnerMode #practiceSum {display:flex;}
+.beginnerMode #info,.beginnerMode #personalRecord,.beginnerMode #comboBarContainer {display:block;visibility:hidden;}
 #effects {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 10px;width:min(740px,100%);min-height:32px;margin:4px auto 0;}
 #effects .effectRow {height:28px;margin:0;font-size:11px;line-height:14px;gap:1px 3px;}
 #effects .effectTrack {height:3px;}
@@ -721,10 +727,12 @@ body {padding:8px 68px 8px 10px;}
  body {padding:6px 68px 8px 8px;}
  .titleRow h1 {font-size:23px;}
  #info {font-size:12px;line-height:24px;}
+ #scoreboardSlot {height:52px;}
  #effects {grid-template-columns:repeat(2,minmax(0,1fr));min-height:60px;}
  .augmentNavButton {min-height:44px;padding:4px 6px;gap:5px;font-size:11px;}
  #freezeBadge,#timeWarning {width:17px;font-size:17px;}
 }
+@media(max-width:420px){#scoreboardSlot {height:72px;}}
 /* COMPACT PLAY LAYOUT END */
 </style>
 </head>
@@ -764,6 +772,7 @@ body {padding:8px 68px 8px 10px;}
 <div class="modeCard"><div><h3>✨ 차별적인 능력</h3><p>새 판마다 능력을 선택해요. 얻은 능력은 한 판 동안 유지돼요.</p></div><button type="button" class="modePlay" data-mode="augment" aria-label="차별적인 능력 플레이">플레이</button></div>
 <button id="modeClose" type="button">닫기</button>
 </dialog>
+<div id="scoreboardSlot">
 <div id="practiceSum">선택 합 <strong id="practiceSumValue">0</strong> / 10</div>
 <div id="info">
 
@@ -805,6 +814,7 @@ body {padding:8px 68px 8px 10px;}
 </div>
 
 
+</div>
 <div id="personalRecord">🏆 내 최고기록 <strong id="bestScore">0</strong>점 <span id="recordNotice" role="status"></span></div>
 <div id="status">
     사과판을 터치하거나 클릭하면 시작합니다!
