@@ -754,7 +754,7 @@ body {padding:8px 68px 8px 10px;}
 </dialog>
 
 
-<p id="modeRule">🍎 클래식 · 합 10</p>
+<p id="modeRule" hidden></p>
 <dialog id="modeDialog" aria-labelledby="modeTitle">
 <h2 id="modeTitle" tabindex="-1" autofocus>🎮 모드 선택</h2>
 <div class="modeCard"><div><h3>🍎 클래식</h3><p>합 10을 만들어요. 시간제한, 점수와 콤보에 도전해요.</p></div><button type="button" class="modePlay" data-mode="classic" aria-label="클래식 플레이">플레이</button></div>
@@ -1171,6 +1171,7 @@ function saveInventory() {
 
 function startGame() {
     document.getElementById("modeRule").textContent = MODE_NAMES[gameMode];
+    document.getElementById("modeRule").hidden = gameMode === "classic";
     document.body.classList.toggle("darkMode", gameMode === "dark");
     hideSpotlight();
     refillVersion++;
