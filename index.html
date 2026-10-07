@@ -662,12 +662,12 @@ body { padding-right: 68px; }
 <p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
     <h2 id="helpTitle" tabindex="-1" autofocus>🍎 플레이 방법</h2>
-    <p>🖱️ 손가락이나 마우스로 드래그해서 <strong>클래식·차단막·초보자는 합 10</strong>, <strong>차곡차곡 모드는 합 10·20·30…</strong>을 만들어주세요.</p>
+    <p>🖱️ 손가락이나 마우스로 드래그해서 <strong>클래식·차단막·차근차근 연습모드는 합 10</strong>, <strong>차곡차곡 모드는 합 10·20·30…</strong>을 만들어주세요.</p>
     <p>🔥 <strong>10콤보</strong> 달성 시 부스트 발동!</p>
     <p>⏱️ <strong>100점마다 20초</strong>가 추가돼요!</p>
     <p>🎁 <strong>100점마다 아이템 1개</strong> 즉시 지급!</p>
     <p>🍎 조합이 없으면 새 사과판! <strong>시간이 끝날 때까지</strong> 계속해요.</p>
-    <p>🌱 초보자는 시간·점수·콤보·아이템 없이 연습해요.</p>
+    <p>🌱 차근차근 연습모드는 시간·점수·콤보·아이템 없이 연습해요.</p>
     <h3>🎒 아이템</h3>
 
     <p>🍇 <strong>점수 부스트:</strong> 10초 동안 점수 ×1.5!</p>
@@ -683,7 +683,7 @@ body { padding-right: 68px; }
 <div class="modeCard"><div><h3>🍎 클래식</h3><p>합 10을 만들어요. 시간제한, 점수와 콤보에 도전해요.</p></div><button type="button" class="modePlay" data-mode="classic" aria-label="클래식 플레이">플레이</button></div>
 <div class="modeCard"><div><h3>🔢 차곡차곡</h3><p>합이 10·20·30…이면 지워져요. 크게 묶어 높은 점수를 노려보세요.</p></div><button type="button" class="modePlay" data-mode="multiples" aria-label="차곡차곡 플레이">플레이</button></div>
 <div class="modeCard"><div><h3>🔦 차단막</h3><p>마우스 주변 약 9칸만 동그랗게 보여요. 모바일은 마지막으로 누른 곳을 계속 비춰요. 합 10을 찾아보세요!</p></div><button type="button" class="modePlay" data-mode="dark" aria-label="차단막 플레이">플레이</button></div>
-<div class="modeCard"><div><h3>🌱 초보자</h3><p>시간제한과 점수 없이 합 10을 연습해요. 콤보와 아이템 없이 천천히 즐겨요.</p></div><button type="button" class="modePlay" data-mode="beginner" aria-label="초보자 플레이">플레이</button></div>
+<div class="modeCard"><div><h3>🌱 차근차근 연습모드</h3><p>시간제한과 점수 없이 합 10을 연습해요. 콤보와 아이템 없이 천천히 즐겨요.</p></div><button type="button" class="modePlay" data-mode="beginner" aria-label="차근차근 연습모드 플레이">플레이</button></div>
 <div class="modeOption"><strong>✨ 차별적인 능력</strong><p>새 판마다 영구 능력을 선택해요. 프리즘 확률 1%, 한 판에 하나! 능력은 다음 게임에 초기화돼요.</p><button class="modePlay" data-mode="augment">플레이</button></div>
 <button id="modeClose" type="button">닫기</button>
 </dialog>
@@ -968,7 +968,7 @@ const MODE_NAMES = {
     classic: "🍎 클래식 · 합 10",
     multiples: "🔢 차곡차곡 · 합 10·20·30…",
     dark: "🔦 차단막 · 빛을 따라 합 10 찾기",
-    beginner: "🌱 초보자 · 시간과 점수 없이 합 10 연습"
+    beginner: "🌱 차근차근 연습모드 · 시간과 점수 없이 합 10 연습"
 };
 let gameMode = "classic";
 try {
