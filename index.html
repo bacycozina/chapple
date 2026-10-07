@@ -581,9 +581,6 @@ body { padding-right: 68px; }
     #milestoneBadge { font-size: 12px; }
 }
 
-#secretApple { appearance: none; border: 0; padding: 0; margin: 0; min-width: 44px; min-height: 44px; background: transparent; font: inherit; vertical-align: middle; cursor: pointer; touch-action: manipulation; }
-#secretApple:active { transform: scale(.9); }
-#secretApple:focus-visible { outline: 2px solid #73964d; border-radius: 10px; }
 </style>
 </head>
 
@@ -591,7 +588,7 @@ body { padding-right: 68px; }
 <body>
 
 <div class="titleRow">
-    <h1><button id="secretApple" type="button" aria-label="사과">🍎</button> 차플게임</h1>
+    <h1>🍎 차플게임</h1>
     <button id="helpButton" type="button" aria-label="플레이 방법과 규칙 보기" aria-haspopup="dialog" aria-controls="helpDialog">?</button>
 </div>
 <p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
@@ -2654,12 +2651,7 @@ function showMilestone(points, gifts) {
     }, 3000);
 }
 
-document.getElementById("secretApple").addEventListener("click", () => {
-    const gift = giveReward();
-    updateItems();
-    document.getElementById("giftNotice").textContent = "🍎 비밀 선물! " + gift;
-    statusText.textContent = "🍎 " + gift;
-});
+
 </script>
 
 </body>
