@@ -659,6 +659,16 @@ body { padding-right: 68px; }
 
 
 
+
+
+
+
+
+
+
+
+
+
 /* CATALOG STYLES START */
 #augmentDialog h2:focus{outline:none}.augCard:focus-visible{outline:2px solid #557f39;outline-offset:3px}
 #augmentBar {display:flex;justify-content:center;gap:10px;background:transparent;padding:4px;margin:10px auto;}
@@ -678,6 +688,44 @@ body { padding-right: 68px; }
 @media(min-width:1100px) and (min-height:800px){#augmentCatalog table{font-size:13px}#augmentCatalog th,#augmentCatalog td{padding:6px}}
 @media(max-width:900px){#augmentCatalog{width:94vw}.catalogTableWrap{grid-template-columns:1fr}#augmentCatalog table{font-size:13px}#augmentCatalog th,#augmentCatalog td{padding:9px}}
 /* CATALOG STYLES END */
+
+/* COMPACT PLAY LAYOUT START */
+body {padding:8px 68px 8px 10px;}
+.titleRow {gap:8px;margin-bottom:3px;}
+.titleRow h1 {font-size:26px;line-height:36px;}
+#modeRule {min-height:0;height:18px;line-height:18px;margin:2px 0 3px;}
+#info {font-size:16px;line-height:26px;margin-bottom:0;}
+#personalRecord {height:20px;line-height:20px;font-size:12px;margin:0;}
+#recordNotice {display:inline;height:auto;margin-left:6px;}
+#status {height:21px;min-height:21px;line-height:21px;font-size:12px;margin:0 0 3px;}
+#comboBarContainer {height:6px;margin:0 auto 5px;}
+#practiceSum {margin:2px 0;font-size:15px;}
+#effects {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 10px;width:min(740px,100%);min-height:32px;margin:4px auto 0;}
+#effects .effectRow {height:28px;margin:0;font-size:11px;line-height:14px;gap:1px 3px;}
+#effects .effectTrack {height:3px;}
+#giftNotice {height:20px;line-height:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px auto 0;font-size:12px;}
+#augmentBar {margin:4px auto;padding:0;gap:8px;}
+.augmentNavButton {padding:3px 10px;min-height:38px;font-size:12px;}
+.augmentNavIcon {width:26px;height:26px;font-size:18px;}
+#modeClose {display:block;margin:10px 0 0 auto;}
+#modeDialog .modePlay,#modeClose {width:64px;padding:10px 8px;}
+#modeDialog {padding:18px;}
+#modeDialog h2 {margin:0 0 6px;font-size:22px;}
+#modeDialog .modeCard {padding:9px 0;}
+@media(min-width:901px){
+ #helpButton,#modeButton {width:36px;height:36px;min-width:36px;min-height:36px;font-size:21px;}
+ #game {--compact-cell:clamp(26px,calc((100dvh - 290px)/10 - 4px),45px);grid-template-columns:repeat(17,var(--compact-cell));grid-template-rows:repeat(10,var(--compact-cell));padding:12px;}
+ #game .apple {width:var(--compact-cell);height:var(--compact-cell);font-size:clamp(16px,calc(var(--compact-cell)*.49),22px);padding-top:calc(var(--compact-cell)*.1778);}
+}
+@media(max-width:900px){
+ body {padding:6px 68px 8px 8px;}
+ .titleRow h1 {font-size:23px;}
+ #info {font-size:12px;line-height:24px;}
+ #effects {grid-template-columns:repeat(2,minmax(0,1fr));min-height:60px;}
+ .augmentNavButton {min-height:44px;padding:4px 6px;gap:5px;font-size:11px;}
+ #freezeBadge,#timeWarning {width:17px;font-size:17px;}
+}
+/* COMPACT PLAY LAYOUT END */
 </style>
 </head>
 
@@ -689,7 +737,7 @@ body { padding-right: 68px; }
     <button id="helpButton" type="button" aria-label="플레이 방법과 규칙 보기" aria-haspopup="dialog" aria-controls="helpDialog">?</button>
     <button id="modeButton" type="button" aria-label="모드 선택" title="모드 선택" aria-haspopup="dialog" aria-controls="modeDialog">🍏</button>
 </div>
-<p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
+
 <dialog id="helpDialog" aria-labelledby="helpTitle">
     <h2 id="helpTitle" tabindex="-1" autofocus>🍎 플레이 방법</h2>
     <p>🖱️ 손가락이나 마우스로 드래그해서 <strong>클래식·차단막·차근차근 연습모드는 합 10</strong>, <strong>차곡차곡 모드는 합 10·20·30…</strong>을 만들어주세요.</p>
@@ -809,7 +857,7 @@ body { padding-right: 68px; }
 
 <div id="effects" aria-label="효과 남은 시간"><div id="comboEffect" class="effectRow comboEffect" hidden><span>🔥 콤보 ×2</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="boostEffect" class="effectRow boostEffect" hidden><span>🍇 점수 ×1.5</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="freezeEffect" class="effectRow freezeEffect" hidden><span>🧊 시간 동결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div><div id="hintEffect" class="effectRow hintEffect" hidden><span>🍊 조합 연결</span><strong class="effectSeconds"></strong><div class="effectTrack"><div class="effectFill"></div></div></div></div>
 <div id="giftNotice" role="status"></div>
-<p class="mobileTip">손가락으로 드래그해 목표 합을 만드세요. 가로로 돌리면 사과가 더 크게 보여요.</p>
+
 <div id="items">
 
     <h3 class="itemDockTitle">아이템</h3>
@@ -2995,7 +3043,7 @@ function renderCatalog(){
 function renderAug(){
  augBar.hidden=gameMode!=='augment';
  augBar.replaceChildren();
- for(const [view,icon,label,id]of [['all','?','모든 증강','augmentAllButton'],['owned','!','내가 고른 증강 · '+aug.owned.size+'개','augmentInfoButton']]){
+ for(const [view,icon,label,id]of [['all','?','모든 증강','augmentAllButton']]){
   const button=document.createElement('button');button.id=id;button.type='button';button.className='augmentNavButton';button.setAttribute('aria-label',label);
   const symbol=document.createElement('span');symbol.className='augmentNavIcon';symbol.textContent=icon;symbol.setAttribute('aria-hidden','true');const text=document.createElement('span');text.textContent=label;button.append(symbol,text);
   button.onclick=()=>{catalogView=view;renderCatalog();catalogDialog.showModal();};augBar.append(button);
@@ -3006,6 +3054,11 @@ function renderAug(){
 function pickCandidates(random=Math.random){
  const pool=AUGMENTS.filter(a=>!augmentBlockReason(a.id));
  const result=[];
+ if(aug.owned.size===0){
+  const prisms=pool.filter(a=>a.tier==='prism');
+  while(result.length<3&&prisms.length){const index=Math.floor(random()*prisms.length);result.push(prisms.splice(index,1)[0]);}
+  return result;
+ }
  for(let n=0;n<3&&pool.length;n++){
   const roll=random();let tier=roll<.01?'prism':roll<.16?'diamond':roll<.51?'gold':'bronze';
   let choices=pool.filter(a=>a.tier===tier);
@@ -3019,7 +3072,7 @@ function offerAug(after=()=>{}){
  const choices=pickCandidates();if(!choices.length){after();return;}
  cancelSelection();aug.first=[];aug.taps=[];apples.forEach(a=>a.classList.remove('held'));
  aug.choosing=true;refilling=true;refillStarted=Date.now();updateItems();
- augDialog.innerHTML='<h2 tabindex="-1" autofocus>✨ 능력을 골라주세요</h2><p>한 판 동안 계속 유지돼요 · 선택 중 시간 정지</p><div class="augChoices"></div>';
+ augDialog.innerHTML='<h2 tabindex="-1" autofocus>'+(aug.owned.size===0?'🌈 시작할 프리즘을 골라주세요':'✨ 능력을 골라주세요')+'</h2><p>한 판 동안 계속 유지돼요 · 선택 중 시간 정지</p><div class="augChoices"></div>';
  for(const a of choices){const b=document.createElement('button');b.className='augCard aug-'+a.tier;b.innerHTML='<small>'+tiers[a.tier]+'</small><strong>'+a.name+'</strong><span>'+a.desc+'</span>';b.onclick=()=>{
    const paused=Date.now()-refillStarted;
    if(lastSuccessTime)lastSuccessTime+=paused;
