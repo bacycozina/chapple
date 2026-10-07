@@ -622,6 +622,10 @@ body { padding-right: 68px; }
 .modePlayRow { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
 .modePlayRow #gameMode { flex: 1; min-width: 0; }
 .modePlayRow #modeStart { margin: 0; flex: none; min-height: 44px; white-space: nowrap; }
+
+#darkMask { display:none; position:absolute; inset:0; z-index:3; pointer-events:none; border-radius:15px; background:#080909; }
+.darkMode #darkMask { display:block; }
+.darkMode #darkMask.lit { background:radial-gradient(circle var(--light-radius,85px) at var(--light-x,-1000px) var(--light-y,-1000px), rgba(0,0,0,.02) 0%, rgba(0,0,0,.12) 27%, rgba(0,0,0,.48) 57%, rgba(0,0,0,.83) 82%, #080909 100%); }
 </style>
 </head>
 
@@ -636,14 +640,14 @@ body { padding-right: 68px; }
 <p class="startTip">처음이라면 ? 버튼에서 플레이 방법을 확인해 보세요.</p>
 <dialog id="helpDialog" aria-labelledby="helpTitle">
     <h2 id="helpTitle" tabindex="-1" autofocus>🍎 플레이 방법</h2>
-    <p>🖱️ 손가락이나 마우스로 드래그해서 <strong>클래식·초보자는 합 10</strong>, <strong>차곡차곡 모드는 합 10·20·30…</strong>을 만들어주세요.</p>
+    <p>🖱️ 손가락이나 마우스로 드래그해서 <strong>클래식·차단막·초보자는 합 10</strong>, <strong>차곡차곡 모드는 합 10·20·30…</strong>을 만들어주세요.</p>
     <p>🔥 <strong>10콤보</strong> 달성 시 부스트 발동!</p>
     <p>⏱️ <strong>100점마다 20초</strong>가 추가돼요!</p>
     <p>🎁 <strong>100점마다 아이템 1개</strong> 즉시 지급!</p>
     <p>🍎 조합이 없으면 새 사과판! <strong>시간이 끝날 때까지</strong> 계속해요.</p>
     <p>🌱 초보자는 시간·점수·콤보·아이템 없이 연습해요.</p>
     <h3>🎒 아이템</h3>
-    <p>클래식·차곡차곡에서 오른쪽 버튼을 누르면 사용돼요. 남은 아이템은 같은 기기·브라우저에 자동 저장돼요.</p>
+    <p>클래식·차곡차곡·차단막에서 오른쪽 버튼을 누르면 사용돼요. 남은 아이템은 같은 기기·브라우저에 자동 저장돼요.</p>
     <p>🍇 <strong>점수 부스트:</strong> 10초 동안 점수 ×1.5!</p>
     <p>🧊 <strong>시간 동결:</strong> 10초 동안 게임 시간이 멈춰요. 콤보 시간은 계속 흘러요.</p>
     <p>🍊 <strong>조합 힌트:</strong> 10초 동안 현재 모드에서 지울 수 있는 조합의 사과를 🍊로 표시해요.</p>
@@ -656,6 +660,7 @@ body { padding-right: 68px; }
 <h2 id="modeTitle" tabindex="-1" autofocus>🎮 모드 선택</h2>
 <p><strong>🍎 클래식</strong><br>합 10을 만들어요. 시간제한, 점수와 콤보에 도전해요.</p>
 <p><strong>🔢 차곡차곡</strong><br>합이 10·20·30…이면 지워져요. 크게 묶어 높은 점수를 노려보세요.</p>
+<p><strong>🔦 차단막</strong><br>까만 사과판에서 마우스 주변 약 9칸만 동그랗게 보여요. 모바일은 마지막으로 누른 곳을 계속 비춰요. 합 10을 찾아보세요!</p>
 <p><strong>🌱 초보자</strong><br>시간제한도 점수도 없이 합 10을 연습해요. 콤보와 아이템 없이 천천히 즐길 수 있어요.</p>
 <p>어떤 모드든 조합이 없으면 사과판이 새로 생겨요.</p>
 <label for="gameMode">플레이할 모드</label>
@@ -663,6 +668,7 @@ body { padding-right: 68px; }
 <select id="gameMode">
 <option value="classic">🍎 클래식</option>
 <option value="multiples">🔢 차곡차곡</option>
+<option value="dark">🔦 차단막</option>
 <option value="beginner">🌱 초보자</option>
 </select>
 <button id="modeStart" type="button">플레이</button>
@@ -725,7 +731,7 @@ body { padding-right: 68px; }
 </div>
 
 
-<div id="gameWrapper"><div id="refillNotice" hidden role="status"><strong>더 이상 할 게 없습니다!</strong><span>다시 채울게요! 🍎</span></div><div id="milestoneBadge" hidden role="status"></div><div id="hintFloat" hidden aria-hidden="true">🍊</div>
+<div id="gameWrapper"><div id="darkMask" aria-hidden="true"></div><div id="refillNotice" hidden role="status"><strong>더 이상 할 게 없습니다!</strong><span>다시 채울게요! 🍎</span></div><div id="milestoneBadge" hidden role="status"></div><div id="hintFloat" hidden aria-hidden="true">🍊</div>
 
     <div id="game">
     </div>
@@ -950,7 +956,7 @@ function isValidSum(sum) {
     return sum > 0 && (gameMode === "multiples" ? sum % 10 === 0 : sum === 10);
 }
 function recordKey() {
-    return gameMode === "multiples" ? "chapple-best-score-multiples" : "chapple-best-score";
+    return gameMode === "dark" ? "chapple-best-score-dark" : gameMode === "multiples" ? "chapple-best-score-multiples" : "chapple-best-score";
 }
 function readBestScore() {
     try {
@@ -1064,6 +1070,8 @@ function saveInventory() {
 ========================================= */
 
 function startGame() {
+    document.body.classList.toggle("darkMode", gameMode === "dark");
+    hideSpotlight();
     refillVersion++;
     refilling = false;
     game.classList.remove("refillOut", "refillIn");
@@ -2788,9 +2796,10 @@ document.getElementById("modeButton").addEventListener("click", () => {
 document.getElementById("modeClose").addEventListener("click", () => modeDialog.close());
 document.getElementById("modeStart").addEventListener("click", () => {
     const choice = document.getElementById("gameMode").value;
-    gameMode = ["classic", "multiples", "beginner"].includes(choice) ? choice : "classic";
+    gameMode = ["classic", "multiples", "beginner", "dark"].includes(choice) ? choice : "classic";
     bestScore = readBestScore();
     document.getElementById("modeRule").textContent = {
+        dark: "🔦 차단막 · 빛을 따라 합 10 찾기",
         classic: "🍎 클래식 · 합 10",
         multiples: "🔢 차곡차곡 · 합 10·20·30…",
         beginner: "🌱 초보자 · 시간과 점수 없이 합 10 연습"
@@ -2802,6 +2811,37 @@ document.getElementById("modeStart").addEventListener("click", () => {
     startGame();
     updateRecord();
 });
+
+function hideSpotlight() {
+    document.getElementById("darkMask").classList.remove("lit");
+}
+function moveSpotlight(event) {
+    if (gameMode !== "dark" || !playing) return;
+    if (event.pointerType !== "mouse" && !event.isPrimary) return;
+    const bounds = game.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right ||
+        event.clientY < bounds.top || event.clientY > bounds.bottom) {
+        if (event.pointerType === "mouse") hideSpotlight();
+        return;
+    }
+    const mask = document.getElementById("darkMask");
+    const wrapper = document.getElementById("gameWrapper").getBoundingClientRect();
+    const cell = apples[0].getBoundingClientRect().width;
+    const gap = parseFloat(getComputedStyle(game).columnGap) || 0;
+    mask.style.setProperty("--light-x", (event.clientX - wrapper.left) + "px");
+    mask.style.setProperty("--light-y", (event.clientY - wrapper.top) + "px");
+    mask.style.setProperty("--light-radius", ((cell + gap) * 1.85) + "px");
+    mask.classList.add("lit");
+}
+game.addEventListener("pointermove", moveSpotlight);
+game.addEventListener("pointerdown", moveSpotlight);
+game.addEventListener("pointerleave", event => {
+    if (event.pointerType === "mouse") hideSpotlight();
+});
+game.addEventListener("pointercancel", hideSpotlight);
+// Keep the last touch position illuminated after lifting a finger.
+window.addEventListener("blur", hideSpotlight);
+window.addEventListener("resize", hideSpotlight);
 </script>
 
 </body>
