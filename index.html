@@ -752,7 +752,7 @@ body {padding:8px 68px 8px 10px;}
 /* COMPACT PLAY LAYOUT END */
 
 /* RESULTS AND MINIMAL HUD */
-#personalRecord,#status,#comboBarContainer,#practiceSum {display:none !important;}
+#personalRecord,#status,#practiceSum {display:none !important;}
 #scoreboardSlot {height:36px;margin:0 0 5px;}
 #info {display:flex;align-items:center;justify-content:center;gap:24px;font-size:16px;line-height:28px;}
 .beginnerMode #info {display:flex;visibility:hidden;}
@@ -770,6 +770,11 @@ body {padding:8px 68px 8px 10px;}
 #resultAbilities {font-size:12px;text-align:left;}#resultAbilities p{margin:12px 0 7px;font-weight:bold;}#resultAbilities span{display:inline-block;padding:5px 8px;border-radius:9px;margin:0 4px 5px 0;}
 #restartButton {margin-top:14px;min-height:44px;}
 @media(max-width:600px){#info{font-size:14px;gap:12px;}#overlayBox{padding:16px;}#targetSumBadge{font-size:10px;}}
+
+#comboHud {height:22px;line-height:22px;margin:0;font-size:13px;color:#d56b16;font-variant-numeric:tabular-nums;}
+.comboDivider {margin:0 5px;color:#8d997e;}
+#comboBarContainer {display:block;height:5px;margin:2px auto 6px;width:min(260px,80%);}
+.beginnerMode #comboHud,.beginnerMode #comboBarContainer {visibility:hidden;}
 </style>
 </head>
 
@@ -810,7 +815,7 @@ body {padding:8px 68px 8px 10px;}
 </dialog>
 <div id="scoreboardSlot">
 <div id="practiceSum">선택 합 <strong id="practiceSumValue">0</strong> / 10</div>
-<div id="info"><span class="hudTime">⏱️ <span id="freezeBadge" hidden aria-label="시간 동결 중">🧊</span><span id="timeWarning" hidden role="status" aria-label="남은 시간 10초 이하">⚠</span><span id="timer">120</span>초</span><span class="hudScore">🍎 <span id="score">0</span>점</span><span hidden><span id="combo">0</span><span id="boostIcon"></span><span id="multiplier">×1</span><span id="currentSum">0</span></span></div>
+<div id="info"><span class="hudTime">⏱️ <span id="freezeBadge" hidden aria-label="시간 동결 중">🧊</span><span id="timeWarning" hidden role="status" aria-label="남은 시간 10초 이하">⚠</span><span id="timer">120</span>초</span><span class="hudScore">🍎 <span id="score">0</span>점</span><span hidden><span id="boostIcon"></span><span id="multiplier">×1</span><span id="currentSum">0</span></span></div>
 
 
 </div>
@@ -820,6 +825,7 @@ body {padding:8px 68px 8px 10px;}
 </div>
 
 
+<div id="comboHud">🔥 <strong id="combo">0</strong>콤보 <span class="comboDivider">·</span> <strong id="comboRemaining">0.0</strong>초</div>
 <div id="comboBarContainer">
 
     <div id="comboBar">
@@ -2848,6 +2854,9 @@ function updateRecord() {
     document.getElementById("bestScore").textContent = formatScore(bestScore);
 }
 function updateEffects() {
+    const comboNow = refilling ? refillStarted : Date.now();
+    const comboRemaining = playing && combo > 0 && lastSuccessTime ? Math.max(0, getComboLimit() - (comboNow - lastSuccessTime)) / 1000 : 0;
+    document.getElementById("comboRemaining").textContent = comboRemaining.toFixed(1);
     document.getElementById("practiceSumValue").textContent = currentSumText.textContent;
     const now = refilling ? refillStarted : Date.now();
     const urgent = gameMode !== "beginner" && !refilling && playing && timerStarted && timeLeft <= 10 && timeLeft > 0 && !freezeActive;
@@ -3257,7 +3266,7 @@ function playSound(kind){
  try{for(const [freq,delay,length]of notes){const osc=soundContext.createOscillator(),gain=soundContext.createGain(),at=soundContext.currentTime+delay;osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(.06,at+.008);gain.gain.exponentialRampToValueAtTime(.001,at+length);osc.connect(gain);gain.connect(soundContext.destination);osc.start(at);osc.stop(at+length+.015);osc.onended=()=>{osc.disconnect();gain.disconnect();};}}catch{}
 }
 const soundButton=document.createElement('button');soundButton.id='soundButton';soundButton.type='button';document.getElementById('modeButton').after(soundButton);
-function updateSoundButton(){soundButton.textContent=soundEnabled?'🔊':'🔇';soundButton.setAttribute('aria-label',soundEnabled?'효과음 끄기':'효과음 켜기');soundButton.setAttribute('aria-pressed',String(soundEnabled));soundButton.title=soundEnabled?'효과음 끄기':'효과음 켜기';}
+function updateSoundButton(){soundButton.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/>'+(soundEnabled?'':'<path d="m3 3 18 18"/>')+'</svg>';soundButton.setAttribute('aria-label',soundEnabled?'효과음 끄기':'효과음 켜기');soundButton.setAttribute('aria-pressed',String(soundEnabled));soundButton.title=soundEnabled?'효과음 끄기':'효과음 켜기';}
 soundButton.onclick=()=>{soundEnabled=!soundEnabled;try{localStorage.setItem('chapple-sound',soundEnabled?'on':'off');}catch{}updateSoundButton();if(soundEnabled){unlockSound();soundContext?.resume().then(()=>playSound('harvest')).catch(()=>{});}else soundContext?.suspend().catch(()=>{});};
 document.addEventListener('pointerdown',unlockSound,{capture:true,passive:true});
 document.addEventListener('keydown',unlockSound,{capture:true});
