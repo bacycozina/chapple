@@ -750,6 +750,24 @@ body {padding:8px 68px 8px 10px;}
 }
 @media(max-width:420px){#scoreboardSlot {height:72px;}}
 /* COMPACT PLAY LAYOUT END */
+
+/* RESULTS AND MINIMAL HUD */
+#personalRecord,#status,#comboBarContainer,#practiceSum {display:none !important;}
+#scoreboardSlot {height:36px;margin:0 0 5px;}
+#info {display:flex;align-items:center;justify-content:center;gap:24px;font-size:16px;line-height:28px;}
+.beginnerMode #info {display:flex;visibility:hidden;}
+#freezeBadge[hidden],#timeWarning[hidden] {display:none !important;}
+#targetSumBadge {font-size:12px;}
+#soundButton {position:fixed;right:10px;bottom:12px;z-index:650;width:44px;height:44px;border:1px solid #bed09f;border-radius:50%;background:#fffdf5;font-size:23px;cursor:pointer;}
+#overlay {position:fixed;inset:0;width:auto;height:auto;max-width:none;z-index:1000;padding:12px;background:#20321dbb;border-radius:0;touch-action:auto;}
+#overlayBox {width:440px;max-width:100%;max-height:92dvh;overflow:auto;overscroll-behavior:contain;padding:22px 26px;touch-action:pan-y pinch-zoom;}
+#overlayTitle {font-size:25px;margin:0 0 8px;}#finalScore {font-size:32px;margin:6px;}#reward{display:none;}
+#resultsTable {width:100%;border-collapse:collapse;font-size:14px;text-align:left;margin-top:12px;}
+#resultsTable caption {font-size:16px;font-weight:bold;padding:6px;color:#42662c;}
+#resultsTable th,#resultsTable td {padding:7px 4px;border-bottom:1px solid #e5ecd9;}#resultsTable th{font-weight:normal;color:#65764e;}#resultsTable td{text-align:right;font-weight:bold;}
+#resultAbilities {font-size:12px;text-align:left;}#resultAbilities p{margin:12px 0 7px;font-weight:bold;}#resultAbilities span{display:inline-block;padding:5px 8px;border-radius:9px;margin:0 4px 5px 0;}
+#restartButton {margin-top:14px;min-height:44px;}
+@media(max-width:600px){#info{font-size:14px;gap:12px;}#overlayBox{padding:16px;}#targetSumBadge{font-size:10px;}}
 </style>
 </head>
 
@@ -790,44 +808,7 @@ body {padding:8px 68px 8px 10px;}
 </dialog>
 <div id="scoreboardSlot">
 <div id="practiceSum">선택 합 <strong id="practiceSumValue">0</strong> / 10</div>
-<div id="info">
-
-    ⏱️
-    <span id="freezeBadge" hidden aria-label="시간 동결 중">🧊</span><span id="timeWarning" hidden role="status" aria-label="남은 시간 10초 이하">⚠</span>
-<span id="timer">
-        120
-    </span>초
-
-    &nbsp; | &nbsp;
-
-    🍎
-    <span id="score">
-        0
-    </span>점
-
-    &nbsp; | &nbsp;
-
-    🔥
-    <span id="combo">
-        0
-    </span>콤보
-
-    &nbsp; | &nbsp;
-
-    <span id="boostIcon"></span>
-
-    <span id="multiplier">
-        ×1
-    </span>
-
-    &nbsp; | &nbsp;
-
-    선택 합
-    <span id="currentSum">
-        0
-    </span>
-
-</div>
+<div id="info"><span class="hudTime">⏱️ <span id="freezeBadge" hidden aria-label="시간 동결 중">🧊</span><span id="timeWarning" hidden role="status" aria-label="남은 시간 10초 이하">⚠</span><span id="timer">120</span>초</span><span class="hudScore">🍎 <span id="score">0</span>점</span><span hidden><span id="combo">0</span><span id="boostIcon"></span><span id="multiplier">×1</span><span id="currentSum">0</span></span></div>
 
 
 </div>
@@ -2456,6 +2437,7 @@ document.addEventListener(
                     apple.classList.remove("selected", "hint");
                     apple.classList.add("removed");
                 });
+                recordHarvest(selected.length);
                 currentSumText.textContent = "0";
                 statusText.textContent = "🌱 잘했어요! 다음 합 10을 찾아보세요.";
                 checkClear();
@@ -2540,6 +2522,7 @@ document.addEventListener(
 
             score +=
                 earned;
+            recordHarvest(selected.length);
 
 
             scoreText.textContent =
@@ -3194,7 +3177,7 @@ function augSuccess(input){
  let base=0;for(const a of selected){const r=+a.dataset.row,c=+a.dataset.col;base+=has('edge')&&(r===0||r===ROWS-1||c===0||c===COLS-1)?5:1;
  if(a.dataset.special==='gold')extra+=has('rich')?10:5;if(a.dataset.special==='ice')timeLeft+=2;if(a.dataset.special==='gift')document.getElementById('giftNotice').textContent=giveReward();
  a.classList.remove('selected','held','hint');a.classList.add('removed');delete a.dataset.special;a.style.removeProperty('box-shadow');}
- const earned=(base+extra)*getMultiplier();score+=earned;aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);aug.success++;aug.removed+=selected.length;
+ const earned=(base+extra)*getMultiplier();score+=earned;recordHarvest(selected.length);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);aug.success++;aug.removed+=selected.length;
  if(has('rest')&&aug.success%5===0)timeLeft++;if(has('rhythm')&&aug.success%10===0)timeLeft+=3;if(has('train'))timeLeft++;
  if(combo%(has('ignition')?8:10)===0){activateComboBoost();if(has('fire'))comboBoostEnd+=3000;}else if(has('fuel')&&comboBoostActive)comboBoostEnd=Math.min(now+15000,comboBoostEnd+500);
  const gifts=[];while(score>=nextTimeBonus){nextTimeBonus+=100;if(!has('money'))timeLeft+=has('bonus')?25:20;gifts.push(giveReward());if(has('gifts'))gifts.push(giveReward());}
@@ -3252,6 +3235,58 @@ setInterval(()=>{const now=Date.now(),delta=now-aug.lastTick;aug.lastTick=now;if
  if(has('still')&&freezeActive&&lastSuccessTime)lastSuccessTime+=delta;
 },20);
 bestScore=readBestScore();startGame();updateRecord();
+
+
+// Session-only results; saved high scores and inventory keep their existing keys.
+let runStats = freshRunStats();
+function freshRunStats(){return {apples:0,harvests:0,maxCombo:0,boosts:0,items:0,seconds:0};}
+function recordHarvest(count){runStats.apples+=count;runStats.harvests++;runStats.maxCombo=Math.max(runStats.maxCombo,combo);playSound('harvest');}
+let soundEnabled=false;
+try{soundEnabled=localStorage.getItem('chapple-sound')==='on';}catch{}
+let soundContext=null;
+function unlockSound(){
+ if(!soundEnabled)return;
+ try{const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;if(!soundContext)soundContext=new Audio();if(soundContext.state==='suspended')soundContext.resume().catch(()=>{});}catch{}
+}
+function playSound(kind){
+ if(!soundEnabled||!soundContext||soundContext.state!=='running')return;
+ const notes={harvest:[[660,0,.07],[880,.05,.09]],boost:[[523,0,.1],[659,.09,.1],[784,.18,.15]],end:[[523,0,.15],[440,.16,.15],[349,.32,.28]],augment:[[587,0,.1],[740,.1,.1],[988,.2,.2]]}[kind];
+ if(!notes)return;
+ try{for(const [freq,delay,length]of notes){const osc=soundContext.createOscillator(),gain=soundContext.createGain(),at=soundContext.currentTime+delay;osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(.06,at+.008);gain.gain.exponentialRampToValueAtTime(.001,at+length);osc.connect(gain);gain.connect(soundContext.destination);osc.start(at);osc.stop(at+length+.015);osc.onended=()=>{osc.disconnect();gain.disconnect();};}}catch{}
+}
+const soundButton=document.createElement('button');soundButton.id='soundButton';soundButton.type='button';document.body.append(soundButton);
+function updateSoundButton(){soundButton.textContent=soundEnabled?'🔊':'🔇';soundButton.setAttribute('aria-label',soundEnabled?'효과음 끄기':'효과음 켜기');soundButton.setAttribute('aria-pressed',String(soundEnabled));soundButton.title=soundEnabled?'효과음 끄기':'효과음 켜기';}
+soundButton.onclick=()=>{soundEnabled=!soundEnabled;try{localStorage.setItem('chapple-sound',soundEnabled?'on':'off');}catch{}updateSoundButton();if(soundEnabled){unlockSound();soundContext?.resume().then(()=>playSound('harvest')).catch(()=>{});}else soundContext?.suspend().catch(()=>{});};
+document.addEventListener('pointerdown',unlockSound,{capture:true,passive:true});
+document.addEventListener('keydown',unlockSound,{capture:true});
+updateSoundButton();
+const statsStart=startGame;
+startGame=function(){runStats=freshRunStats();statsStart();};
+const statsBoost=activateComboBoost;
+activateComboBoost=function(){statsBoost();runStats.boosts++;playSound('boost');};
+for(const button of [boostItem,freezeItem,hintItem])button.addEventListener('click',()=>{if(playing&&!refilling&&timerStarted&&!button.disabled)runStats.items++;},true);
+// Capture before item handlers, which may stop propagation in augment mode.
+document.addEventListener('click',event=>{
+ const button=event.target.closest('.itemButton');
+ if(gameMode==='augment'&&button&&playing&&!refilling&&timerStarted&&!button.disabled)runStats.items++;
+ if(event.target.closest('.augCard'))playSound('augment');
+},true);
+setInterval(()=>{if(playing&&timerStarted&&!refilling)runStats.seconds++;},1000);
+document.body.append(overlay);
+overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','overlayTitle');
+const resultsTable=document.createElement('table');resultsTable.id='resultsTable';reward.after(resultsTable);
+const resultAbilities=document.createElement('div');resultAbilities.id='resultAbilities';resultsTable.after(resultAbilities);
+function renderResults(){
+ const names={classic:'클래식',multiples:'차곡차곡',dark:'차단막',beginner:'차근차근 연습모드',augment:'차별적인 능력'};
+ const seconds=runStats.seconds;
+ const rows=[['플레이 모드',names[gameMode]],['내 최고기록',formatScore(bestScore)+'점'],['최고 콤보',runStats.maxCombo+'콤보'],['수확한 사과',runStats.apples+'개'],['수확 성공',runStats.harvests+'번'],['부스트 발동',runStats.boosts+'번'],['사용한 아이템',runStats.items+'개'],['플레이 시간',Math.floor(seconds/60)+'분 '+seconds%60+'초']];
+ resultsTable.replaceChildren();const caption=document.createElement('caption');caption.textContent='게임 결과표';resultsTable.append(caption);const body=document.createElement('tbody');
+ for(const [label,value]of rows){const tr=document.createElement('tr'),th=document.createElement('th'),td=document.createElement('td');th.scope='row';th.textContent=label;td.textContent=value;tr.append(th,td);body.append(tr);}resultsTable.append(body);
+ resultAbilities.replaceChildren();resultAbilities.hidden=gameMode!=='augment';
+ if(gameMode==='augment'){const title=document.createElement('p');title.textContent='고른 증강 · '+aug.owned.size+'개';resultAbilities.append(title);for(const a of AUGMENTS.filter(a=>aug.owned.has(a.id))){const tag=document.createElement('span');tag.className='aug-'+a.tier;tag.textContent=a.name;tag.title=a.desc;resultAbilities.append(tag);}}
+}
+const statsEnd=endGame;
+endGame=function(){const wasPlaying=playing;statsEnd();if(wasPlaying&&!playing){if(catalogDialog.open)catalogDialog.close();if(helpDialog.open)helpDialog.close();if(modeDialog.open)modeDialog.close();renderResults();playSound('end');restartButton.focus();}};
 
 </script>
 
