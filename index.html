@@ -775,6 +775,9 @@ body {padding:8px 68px 8px 10px;}
 .comboDivider {margin:0 5px;color:#8d997e;}
 #comboBarContainer {display:block;height:5px;margin:2px auto 6px;width:min(260px,80%);}
 .beginnerMode #comboHud,.beginnerMode #comboBarContainer {visibility:hidden;}
+
+#selectionSumHud {white-space:nowrap;color:#1976d2;font-size:13px;}
+@media(max-width:360px){#info{gap:8px;font-size:13px}#selectionSumHud{font-size:12px}}
 </style>
 </head>
 
@@ -815,7 +818,7 @@ body {padding:8px 68px 8px 10px;}
 </dialog>
 <div id="scoreboardSlot">
 <div id="practiceSum">선택 합 <strong id="practiceSumValue">0</strong> / 10</div>
-<div id="info"><span class="hudTime">⏱️ <span id="freezeBadge" hidden aria-label="시간 동결 중">🧊</span><span id="timeWarning" hidden role="status" aria-label="남은 시간 10초 이하">⚠</span><span id="timer">120</span>초</span><span class="hudScore">🍎 <span id="score">0</span>점</span><span hidden><span id="boostIcon"></span><span id="multiplier">×1</span><span id="currentSum">0</span></span></div>
+<div id="info"><span class="hudTime">⏱️ <span id="freezeBadge" hidden aria-label="시간 동결 중">🧊</span><span id="timeWarning" hidden role="status" aria-label="남은 시간 10초 이하">⚠</span><span id="timer">120</span>초</span><span class="hudScore">🍎 <span id="score">0</span>점</span><span hidden><span id="boostIcon"></span><span id="multiplier">×1</span></span><span id="selectionSumHud" hidden>합 <strong id="currentSum">0</strong></span></div>
 
 
 </div>
@@ -2854,6 +2857,7 @@ function updateRecord() {
     document.getElementById("bestScore").textContent = formatScore(bestScore);
 }
 function updateEffects() {
+    document.getElementById("selectionSumHud").hidden = !(gameMode === "multiples" || document.body.classList.contains("sumAugment"));
     const comboNow = refilling ? refillStarted : Date.now();
     const comboRemaining = playing && combo > 0 && lastSuccessTime ? Math.max(0, getComboLimit() - (comboNow - lastSuccessTime)) / 1000 : 0;
     document.getElementById("comboRemaining").textContent = comboRemaining.toFixed(1);
@@ -3083,6 +3087,8 @@ function renderCatalog(){
  }
 }
 function renderAug(){
+ document.body.classList.toggle('sumAugment',has('multiple'));
+ document.getElementById('selectionSumHud').hidden=!(gameMode==='multiples'||has('multiple'));
  let targetBadge=document.getElementById('targetSumBadge');
  if(!targetBadge){targetBadge=document.createElement('span');targetBadge.id='targetSumBadge';document.getElementById('info').append(targetBadge);}
  targetBadge.hidden=!has('reverse');targetBadge.textContent=' · 목표 합 '+aug.target;
