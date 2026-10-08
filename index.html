@@ -758,7 +758,9 @@ body {padding:8px 68px 8px 10px;}
 .beginnerMode #info {display:flex;visibility:hidden;}
 #freezeBadge[hidden],#timeWarning[hidden] {display:none !important;}
 #targetSumBadge {font-size:12px;}
-#soundButton {position:fixed;right:10px;bottom:12px;z-index:650;width:44px;height:44px;border:1px solid #bed09f;border-radius:50%;background:#fffdf5;font-size:23px;cursor:pointer;}
+#soundButton {position:static;flex:none;width:36px;height:36px;padding:0;border:2px solid #73964d;border-radius:50%;background:white;font-size:21px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+@media(max-width:900px){#soundButton{width:44px;height:44px;}}
+@media(max-width:360px){.titleRow{gap:5px}.titleRow h1{font-size:20px;white-space:nowrap}.titleRow #helpButton,.titleRow #modeButton,.titleRow #soundButton{width:36px;height:36px;min-width:36px;min-height:36px;flex:none;}}
 #overlay {position:fixed;inset:0;width:auto;height:auto;max-width:none;z-index:1000;padding:12px;background:#20321dbb;border-radius:0;touch-action:auto;}
 #overlayBox {width:440px;max-width:100%;max-height:92dvh;overflow:auto;overscroll-behavior:contain;padding:22px 26px;touch-action:pan-y pinch-zoom;}
 #overlayTitle {font-size:25px;margin:0 0 8px;}#finalScore {font-size:32px;margin:6px;}#reward{display:none;}
@@ -3254,7 +3256,7 @@ function playSound(kind){
  if(!notes)return;
  try{for(const [freq,delay,length]of notes){const osc=soundContext.createOscillator(),gain=soundContext.createGain(),at=soundContext.currentTime+delay;osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(.06,at+.008);gain.gain.exponentialRampToValueAtTime(.001,at+length);osc.connect(gain);gain.connect(soundContext.destination);osc.start(at);osc.stop(at+length+.015);osc.onended=()=>{osc.disconnect();gain.disconnect();};}}catch{}
 }
-const soundButton=document.createElement('button');soundButton.id='soundButton';soundButton.type='button';document.body.append(soundButton);
+const soundButton=document.createElement('button');soundButton.id='soundButton';soundButton.type='button';document.getElementById('modeButton').after(soundButton);
 function updateSoundButton(){soundButton.textContent=soundEnabled?'🔊':'🔇';soundButton.setAttribute('aria-label',soundEnabled?'효과음 끄기':'효과음 켜기');soundButton.setAttribute('aria-pressed',String(soundEnabled));soundButton.title=soundEnabled?'효과음 끄기':'효과음 켜기';}
 soundButton.onclick=()=>{soundEnabled=!soundEnabled;try{localStorage.setItem('chapple-sound',soundEnabled?'on':'off');}catch{}updateSoundButton();if(soundEnabled){unlockSound();soundContext?.resume().then(()=>playSound('harvest')).catch(()=>{});}else soundContext?.suspend().catch(()=>{});};
 document.addEventListener('pointerdown',unlockSound,{capture:true,passive:true});
