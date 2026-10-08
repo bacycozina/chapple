@@ -778,6 +778,18 @@ body {padding:8px 68px 8px 10px;}
 
 #selectionSumHud {white-space:nowrap;color:#1976d2;font-size:13px;}
 @media(max-width:360px){#info{gap:8px;font-size:13px}#selectionSumHud{font-size:12px}}
+
+/* Visible permanent augment effects, overlaid without moving hit boxes. */
+#augmentBurst {position:absolute;inset:0;pointer-events:none;z-index:7;overflow:hidden;border-radius:14px;}
+.harvestSpark {position:absolute;display:flex;align-items:center;justify-content:center;font-size:32px;color:#ffe05b;text-shadow:0 0 8px #aa661f;}
+.harvestSpark.diamond {color:#b7f3ff;text-shadow:0 0 9px #2c76ec;}
+.augmentToast {position:absolute;left:50%;bottom:10px;transform:translateX(-50%);max-width:94%;width:max-content;padding:6px 12px;border-radius:20px;color:#583e0b;background:#fff1ac;box-shadow:0 2px 9px #15302544;font-size:13px;font-weight:bold;text-align:center;}
+.augmentToast.diamond {background:#dcf8ff;color:#195678;}
+.apple[data-traits]:not([data-traits=""])::after {content:attr(data-traits);position:absolute;top:-3px;right:-1px;font-size:clamp(8px,1.2vw,12px);line-height:1;z-index:2;text-shadow:0 0 3px white;pointer-events:none;}
+@media(max-width:600px){.augmentToast{font-size:10px;padding:4px 8px}.harvestSpark{font-size:20px}}
+@media(prefers-reduced-motion:reduce){.harvestSpark{display:none}}
+
+#augmentBar{flex-wrap:wrap}#bombChainToggle{font-size:11px;min-height:38px;}
 </style>
 </head>
 
@@ -2679,7 +2691,7 @@ setInterval(
 
             if (
                 passed >
-                getComboLimit() && !(gameMode === "augment" && has("still") && freezeActive)
+                getComboLimit() && !(gameMode === "augment" && has("glacier") && freezeActive)
             ) {
 
                 if (gameMode === "augment" && has("train")) {timeLeft=Math.max(0,timeLeft-5);statusText.textContent="🚂 콤보 끊김! -5초";if(!timeLeft)endGame();}
@@ -2990,36 +3002,38 @@ window.addEventListener('blur',()=>{boardTouches.clear();boardPinching=false;pen
 
 // Abilities last for one run. Prism changes are mutually exclusive.
 const AUGMENTS = [
- ['breath','여유로운 손길','bronze','콤보 시간 +0.5초'],
- ['harvest','풍성한 수확','gold','한 번에 3 / 4~5 / 6~9 / 10개 이상 수확: +3 / 5 / 10 / 50점'],
- ['rest','작은 여유','bronze','5번 성공할 때마다 +1초'],
- ['fire','긴 불꽃','bronze','콤보 부스트 +3초'],
- ['juice','진한 주스','bronze','점수 아이템 +3초'],
- ['ice','두꺼운 얼음','bronze','동결 아이템 +3초'],
- ['guide','오래가는 길잡이','bronze','힌트 아이템 +5초'],
- ['map','넓은 시야','bronze','힌트 조합을 최대 5개 표시'],
- ['ignition','빠른 점화','gold','8콤보마다 부스트'],
- ['fuel','불꽃 연료','gold','부스트 중 성공 시 부스트 +0.5초 (남은 시간 최대 15초)'],
- ['golden','황금 사과','gold','새 판마다 황금 사과 3개: 각각 +5점'],
- ['frost','얼음 사과','gold','새 판마다 얼음 사과 2개: 각각 +2초'],
- ['gift','선물 사과','gold','새 판마다 선물 사과 1개: 아이템 지급'],
- ['double','농축 부스트','gold','점수 아이템 배수 ×2'],
- ['thrift','알뜰 사용','gold','아이템 사용 시 25% 확률로 수량 보존'],
- ['still','정지된 순간','gold','시간 동결 중 콤보 시간도 정지'],
- ['bonus','시간 보너스','gold','100점 보너스 시간 +25초'],
- ['row','가로 수확','diamond','한 줄 가로 수확 성공 시 +10점'],
- ['col','세로 수확','diamond','한 줄 세로 수확 성공 시 +10점'],
- ['edge','모서리 청소','diamond','테두리 사과는 기본 5점'],
- ['blue','푸른 열기','diamond','콤보 부스트 배수 ×2.5'],
- ['gifts','더블 선물','diamond','100점마다 아이템 2개'],
- ['rich','황금 과수원','diamond','새 판마다 황금 사과 5개: 각각 +10점 (황금 사과 대체)'],
- ['danger','벼랑 끝 집중','diamond','남은 시간 10초 이하에서 점수 ×2'],
- ['streak','연속 수확','diamond','10콤보 이상 성공 시 +5점'],
- ['space','빈자리 활용','diamond','선택 영역에 빈칸 3개 이상이면 +8점'],
- ['steady','꾸준한 수확','bronze','성공할 때마다 +1점'],
- ['orchard','과수원 시계','bronze','새 판으로 채울 때마다 +3초'],
- ['rhythm','수확 리듬','gold','10번 성공할 때마다 +3초'],
- ['master','수확의 달인','diamond','모든 수확 점수 ×1.2'],
+ ['scatter','톡톡 팝콘','bronze','성공할 때마다 랜덤 사과 1개 추가 파괴'],
+ ['mirror','거울 사과','bronze','첫 사과의 좌우 대칭 위치도 함께 파괴'],
+ ['magnet','꼬마 자석','bronze','첫 사과에서 가장 가까운 사과 1개 추가 파괴'],
+ ['twins','숫자 메아리','bronze','첫 사과와 같은 숫자 1개 추가 파괴'],
+ ['alchemy','작아져라!','bronze','2회 성공마다 남은 가장 큰 숫자 하나를 1로 변환'],
+ ['seed','금빛 씨앗','bronze','성공마다 황금 사과 1개 생성. 수확하면 +5점'],
+ ['icePulse','서리 발자국','bronze','5회 성공마다 시간 2초 동결'],
+ ['trail','반딧불 길잡이','bronze','성공할 때마다 다음 정답 조합을 2초간 표시'],
+ ['delivery','사과 택배','bronze','추가 파괴 포함 30개 수확마다 랜덤 아이템 지급'],
+ ['ember','튀는 불씨','bronze','4회 성공마다 랜덤 사과 3개 추가 파괴'],
+ ['rowSweep','가로 빗자루','gold','4회 성공마다 첫 사과가 있던 가로줄 전체 파괴'],
+ ['columnSweep','세로 번개','gold','4회 성공마다 첫 사과가 있던 세로줄 전체 파괴'],
+ ['crossBlast','십자 포격','gold','5회 성공마다 첫 사과의 가로·세로줄 동시 파괴'],
+ ['numberHunt','숫자 사냥','gold','5회 성공마다 첫 사과와 같은 숫자를 전부 파괴'],
+ ['bombs','폭탄 농장','gold','성공마다 폭탄 사과 1개 생성. 수확하면 주변 3×3 연쇄 폭발'],
+ ['gravity','중력 뒤집기','gold','3회 성공마다 남은 사과를 아래로 떨어뜨려 재배치'],
+ ['pairing','정답 공장','gold','3회 성공마다 현재 규칙에 맞는 정답 조합 1개 생성'],
+ ['swarm','자석 폭풍','gold','3회 성공마다 첫 사과 가까이의 6개 추가 파괴'],
+ ['midas','황금 물결','gold','4회 성공마다 랜덤 가로줄을 황금화. 사과당 +5점'],
+ ['timeCrystal','얼음 과수원','gold','성공마다 얼음 사과 1개 생성. 수확하면 시간 4초 동결'],
+ ['meteor','유성 낙하','diamond','5회 성공마다 랜덤 사과를 중심으로 5×5 범위 파괴'],
+ ['laser','삼중 레이저','diamond','4회 성공마다 첫 사과 주변 가로 3줄 동시 파괴'],
+ ['lightning','쌍둥이 벼락','diamond','4회 성공마다 첫 숫자와 합 10 짝꿍 숫자를 전부 파괴'],
+ ['blackhole','블랙홀','diamond','6회 성공마다 판 중앙에 가까운 사과 25개 추가 파괴'],
+ ['supernova','초신성','diamond','12회 성공마다 남은 사과판 전체를 한 번에 수확'],
+ ['border','테두리 붕괴','diamond','5회 성공마다 사과판 네 가장자리 전체 파괴'],
+ ['drones','수확 드론 군단','diamond','성공할 때마다 랜덤 사과 5개 추가 파괴'],
+ ['goldRush','황금 대홍수','diamond','6회 성공마다 남은 사과 전부 황금화. 사과당 +10점'],
+ ['glacier','빙하 시대','diamond','8회 성공마다 6초 동결. 모든 시간 동결 중 콤보도 정지'],
+ ['domino','도미노 붕괴','diamond','성공마다 랜덤 3개 파괴. 추가 파괴된 사과의 상하좌우도 한 번 확장'],
+ ['phoenix','불사조 폭탄','gold','폭탄이 터질 때마다 남은 사과에 새 폭탄 1개 생성'],
+ ['detonator','연쇄 점화','diamond','성공 후 폭탄을 자동으로 계속 폭발. 폭탄이 없으면 시작용 폭탄 생성'],
  ['multiple','차곡차곡','prism','합이 10의 배수면 수확! 콤보 시간 -1초 (최소 2초)'],
  ['rain','사과비','prism','수확한 자리를 즉시 채워요. 사과 50개 수확마다 증강 선택!'],
  ['reverse','뒤집힌 계산','prism','목표 합 10 → 15 → 20 순환. 수확 점수 ×3'],
@@ -3029,22 +3043,32 @@ const AUGMENTS = [
  ['solo','고독한 사과','prism','사과를 하나씩 눌러 합 10을 만드세요. 초과하면 선택 취소와 -3초'],
  ['train','폭주 기관차','prism','수확 점수 ×4, 성공마다 +1초. 콤보 제한 2초, 콤보가 끊기면 -5초']
 ].map(([id,name,tier,desc])=>({id,name,tier,desc}));
+
 let aug = freshAug();
-function freshAug(){return {owned:new Set(),prism:null,target:10,success:0,removed:0,nextRain:50,peak:0,first:[],taps:[],choosing:false,lastTick:Date.now()};}
+function freshAug(){return {owned:new Set(),prism:null,target:10,success:0,removed:0,nextRain:50,peak:0,first:[],taps:[],choosing:false,lastTick:Date.now(),levels:{},progress:{},deliveryCount:0,lastEffects:{names:[],extra:0}};}
 function has(id){return gameMode==='augment' && aug.owned.has(id);}
+function augmentLevel(id){return has(id)?(aug.levels?.[id]||1):0;}
+function augmentStackTotal(){return [...aug.owned].reduce((sum,id)=>sum+augmentLevel(id),0);}
+function augmentDescription(a,n=1){
+ const text={
+ phoenix:`폭탄 하나가 터질 때마다 새 폭탄 ${n}개 생성`,detonator:`성공 후 폭탄을 한 번에 ${n}개씩 자동 점화. 없으면 시작용 폭탄 ${n}개 생성`,
+ scatter:`성공마다 랜덤 ${n}개 추가 파괴`,mirror:`첫 사과의 좌우 대칭 지점 가까이 ${n}개 파괴`,magnet:`첫 사과 가까이 ${n}개 추가 파괴`,twins:`첫 사과와 같은 숫자 ${n}개 추가 파괴`,
+ alchemy:`2회 성공마다 큰 숫자 ${n}개를 1로 변환`,seed:`성공마다 황금 사과 ${n}개 생성. 사과당 +${5*n}점`,icePulse:`5회 성공마다 시간 ${2*n}초 동결`,trail:`성공마다 다음 정답 조합을 ${2*n}초간 표시`,delivery:`30개 수확마다 아이템 ${n}개 지급`,ember:`4회 성공마다 랜덤 ${3*n}개 추가 파괴`,
+ rowSweep:`4회 성공마다 첫 사과 주변 가로 ${n}줄 파괴`,columnSweep:`4회 성공마다 첫 사과 주변 세로 ${n}줄 파괴`,crossBlast:`5회 성공마다 가로·세로 각각 ${n}줄 십자 파괴`,numberHunt:`5회 성공마다 첫 숫자부터 ${Math.min(n,9)}종 숫자 전부 파괴`,bombs:`성공마다 폭탄 ${n}개 생성. 수확하면 ${2*n+1}×${2*n+1} 연쇄 폭발`,gravity:`3회 성공마다 사과 낙하${n>1?`, 아래쪽 ${n-1}개 추가 파괴`:''}`,pairing:`3회 성공마다 정답 조합 ${n}개 생성`,swarm:`3회 성공마다 가까운 ${6*n}개 추가 파괴`,midas:`4회 성공마다 ${n}줄 황금화. 사과당 +${5*n}점`,timeCrystal:`성공마다 얼음 사과 ${n}개 생성. 사과당 ${4*n}초 동결`,
+ meteor:`5회 성공마다 5×5 유성 ${n}번 낙하`,laser:`4회 성공마다 가로 ${3*n}줄 동시 파괴`,lightning:`4회 성공마다 첫 숫자부터 ${Math.min(n,9)}종과 합 10 짝꿍 숫자 전부 파괴`,blackhole:`6회 성공마다 중앙 근처 ${25*n}개 추가 파괴`,supernova:`12회 성공마다 판 전체 수확${n>1?`. 해당 수확 점수 ×${n}`:''}`,border:`5회 성공마다 가장자리 ${n}겹 파괴`,drones:`성공마다 랜덤 ${5*n}개 추가 파괴`,goldRush:`6회 성공마다 판 전체 황금화. 사과당 +${10*n}점`,glacier:`8회 성공마다 ${6*n}초 동결. 모든 동결 중 콤보 정지`,domino:`성공마다 랜덤 ${3*n}개 파괴. 추가 파괴의 상하좌우 한 번 확장`
+ };
+ return text[a.id]||a.desc;
+}
+
 const tiers={bronze:'브론즈',gold:'골드',diamond:'다이아몬드',prism:'프리즘'};
 // Symmetric exclusions: do not offer a rule that disables an owned ability,
 // or an ability that the current rules cannot use.
 const AUGMENT_CONFLICTS = [
- ...['rest','frost','bonus','danger','orchard','rhythm'].map(id=>['money',id,'시간 대신 점수를 사용하므로 시간 관련 효과를 사용할 수 없어요.']),
- ['train','breath','콤보 시간이 2초로 고정되어 시간 연장이 적용되지 않아요.'],
- ...['space','orchard','golden','rich','frost','gift'].map(id=>['rain',id,'사과를 즉시 채우므로 빈칸·새 판 기반 능력과 함께 선택할 수 없어요.']),
- ...['solo','balance'].map(id=>[id,'map','이 방식의 힌트는 한 조합만 보여줘서 힌트 개수 증가가 적용되지 않아요.']),
- ['solo','space','사과를 하나씩 고르는 방식에는 선택 영역의 빈칸 효과를 적용하지 않아요.'],
- ['golden','rich','같은 황금 사과 효과를 대체하므로 함께 선택할 수 없어요.']
+ ['rain','gravity','사과비가 매번 낙하와 채우기를 실행해서 중력 재배치가 겹쳐요.'],
+ ['rowSweep','laser','삼중 레이저가 같은 주기의 가로 빗자루 효과를 포함해요.']
 ];
 function augmentBlockReason(id, owned=aug.owned){
- if(owned.has(id))return '이미 보유한 능력이에요.';
+ if(owned.has(id)&&AUGMENTS.find(a=>a.id===id)?.tier==='prism')return '이미 보유한 프리즘이에요.';
  const candidate=AUGMENTS.find(a=>a.id===id);
  for(const other of owned){
   const existing=AUGMENTS.find(a=>a.id===other);
@@ -3069,7 +3093,7 @@ let catalogView='all';
 function renderCatalog(){
  const owned=AUGMENTS.filter(a=>aug.owned.has(a.id));
  catalogDialog.querySelector('h2').textContent=catalogView==='owned'?'! 내가 고른 증강':'? 모든 증강';
- catalogDialog.querySelector('#catalogOwned').textContent=catalogView==='owned'?(owned.length?'현재 보유한 능력 '+owned.length+'개':'아직 고른 증강이 없어요.'):'브론즈 → 골드 → 다이아몬드 → 프리즘 · 전체 '+AUGMENTS.length+'개';
+ catalogDialog.querySelector('#catalogOwned').textContent=catalogView==='owned'?(owned.length?'현재 보유한 능력 '+owned.length+'개':'아직 고른 증강이 없어요.'):'브론즈 → 골드 → 다이아몬드 → 프리즘 · 전체 '+AUGMENTS.length+'개 · 일반 증강은 횟수 제한 없이 중첩';
  const wrap=catalogDialog.querySelector('.catalogTableWrap');wrap.replaceChildren();
  for(const tier of ['bronze','gold','diamond','prism']){
  const entries=AUGMENTS.filter(a=>a.tier===tier&&(catalogView==='all'||aug.owned.has(a.id)));
@@ -3077,8 +3101,8 @@ function renderCatalog(){
  const table=document.createElement('table');table.dataset.tier=tier;table.innerHTML='<caption class="aug-'+tier+'">'+tiers[tier]+'</caption><thead><tr><th scope="col">능력</th><th scope="col">효과</th></tr></thead><tbody></tbody>';wrap.append(table);const tbody=table.querySelector('tbody');
  for(const a of entries){
   const tr=document.createElement('tr'),name=document.createElement('th'),effect=document.createElement('td');
-  name.scope='row';name.className='aug-'+a.tier;name.textContent=a.name;effect.textContent=a.desc;
-  const reason=augmentBlockReason(a.id),state=document.createElement('small');state.textContent=aug.owned.has(a.id)?'✓ 보유 중':reason?'선택 제외':'미보유';state.title=reason;
+  name.scope='row';name.className='aug-'+a.tier;name.textContent=a.name;effect.textContent=augmentDescription(a,Math.max(1,augmentLevel(a.id)));
+  const reason=augmentBlockReason(a.id),state=document.createElement('small');state.textContent=aug.owned.has(a.id)?'✓ 보유 ×'+augmentLevel(a.id):reason?'선택 제외':'미보유';state.title=reason;
   state.textContent=tiers[a.tier]+' · '+state.textContent;
   if(reason&&!aug.owned.has(a.id)){const note=document.createElement('details'),summary=document.createElement('summary'),text=document.createElement('small');note.className='catalogReason';summary.append(state);text.textContent=reason;note.append(summary,text);name.append(note);}
   else name.append(document.createElement('br'),state);
@@ -3093,12 +3117,14 @@ function renderAug(){
  if(!targetBadge){targetBadge=document.createElement('span');targetBadge.id='targetSumBadge';document.getElementById('info').append(targetBadge);}
  targetBadge.hidden=!has('reverse');targetBadge.textContent=' · 목표 합 '+aug.target;
  augBar.hidden=gameMode!=='augment';
- augBar.replaceChildren();
+ if(!augBar.querySelector('#augmentAllButton')){augBar.replaceChildren();
  for(const [view,icon,label,id]of [['all','?','모든 증강','augmentAllButton']]){
   const button=document.createElement('button');button.id=id;button.type='button';button.className='augmentNavButton';button.setAttribute('aria-label',label);
   const symbol=document.createElement('span');symbol.className='augmentNavIcon';symbol.textContent=icon;symbol.setAttribute('aria-hidden','true');const text=document.createElement('span');text.textContent=label;button.append(symbol,text);
   button.onclick=()=>{catalogView=view;renderCatalog();catalogDialog.showModal();};augBar.append(button);
  }
+ }
+ updateChainButton();
  if(catalogDialog.open)renderCatalog();
  if(gameMode==='augment')document.getElementById('modeRule').textContent='✨ 차별적인 능력 · '+(aug.prism?AUGMENTS.find(a=>a.id===aug.prism).name:'합 10')+(has('reverse')?' · 목표 '+aug.target:'');
 }
@@ -3124,38 +3150,54 @@ function offerAug(after=()=>{}){
  cancelSelection();aug.first=[];aug.taps=[];apples.forEach(a=>a.classList.remove('held'));
  aug.choosing=true;refilling=true;refillStarted=Date.now();updateItems();
  augDialog.innerHTML='<h2 tabindex="-1" autofocus>'+(aug.owned.size===0?'🌈 시작할 프리즘을 골라주세요':'✨ 능력을 골라주세요')+'</h2><p>한 판 동안 계속 유지돼요 · 선택 중 시간 정지</p><div class="augChoices"></div>';
- for(const a of choices){const b=document.createElement('button');b.className='augCard aug-'+a.tier;b.innerHTML='<small>'+tiers[a.tier]+'</small><strong>'+a.name+'</strong><span>'+a.desc+'</span>';b.onclick=()=>{
+ for(const a of choices){const b=document.createElement('button');b.className='augCard aug-'+a.tier;b.innerHTML='<small>'+tiers[a.tier]+(a.tier!=='prism'?(has(a.id)?' · ×'+augmentLevel(a.id)+' → ×'+(augmentLevel(a.id)+1):' · 중첩 가능'):'')+'</small><strong>'+a.name+'</strong><span>'+augmentDescription(a,a.tier==='prism'?1:augmentLevel(a.id)+1)+'</span>';b.onclick=()=>{
    const paused=Date.now()-refillStarted;
    if(lastSuccessTime)lastSuccessTime+=paused;
    if(comboBoostActive)comboBoostEnd+=paused;if(itemBoostActive)itemBoostEnd+=paused;if(freezeActive)freezeEnd+=paused;if(hintActive)hintEnd+=paused;
-   aug.owned.add(a.id);if(a.tier==='prism')aug.prism=a.id;
+   aug.levels ||= {};aug.levels[a.id]=augmentLevel(a.id)+1;aug.owned.add(a.id);if(a.tier==='prism')aug.prism=a.id;
    if(a.id==='money'){score=Math.max(score,50);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);timerText.textContent='∞';}
    aug.choosing=false;refilling=false;augDialog.close();markSpecial();renderAug();updateItems();after();
   };augDialog.querySelector('.augChoices').append(b);}
  augDialog.showModal();augDialog.querySelector('h2').focus();
 }
+// One scheduled wave at a time: no recursion depth or total-wave limit.
+let bombChainTimer=null;
+let bombChainEpoch=0;
+let bombChainPaused=false;
+function stopBombChain(){bombChainEpoch++;clearTimeout(bombChainTimer);bombChainTimer=null;}
+function updateChainButton(){
+ let button=document.getElementById('bombChainToggle');
+ if(!button){button=document.createElement('button');button.id='bombChainToggle';button.type='button';button.className='augmentNavButton';augBar.append(button);button.onclick=()=>{bombChainPaused=!bombChainPaused;if(bombChainPaused)stopBombChain();else scheduleBombChain();updateChainButton();};}
+ button.hidden=!has('detonator');button.textContent=bombChainPaused?'▶ 연쇄 재개':'⏸ 연쇄 일시정지';button.setAttribute('aria-pressed',String(bombChainPaused));
+}
+function scheduleBombChain(){
+ if(bombChainTimer!==null||bombChainPaused||!playing||!timerStarted||!has('detonator'))return;
+ if(!apples.some(a=>liveApple(a)&&a.dataset.bomb))return;
+ const epoch=bombChainEpoch;
+ bombChainTimer=setTimeout(()=>{
+  bombChainTimer=null;if(epoch!==bombChainEpoch||bombChainPaused||!playing||!has('detonator'))return;
+  // Let the player select, inspect abilities, and choose rewards safely.
+  if(refilling||aug.choosing||catalogDialog.open||helpDialog.open||modeDialog.open||dragging||aug.first.length||aug.taps.length){scheduleBombChain();return;}
+  const bombs=apples.filter(a=>liveApple(a)&&a.dataset.bomb).slice(0,augmentLevel('detonator'));
+  if(bombs.length)augSuccess(bombs,{automatic:true});
+ },240);
+}
+
 const baseStart=startGame;
-startGame=function(){if(augDialog.open)augDialog.close();if(catalogDialog.open)catalogDialog.close();aug=freshAug();baseStart();renderAug();if(gameMode==='augment')offerAug();};
+startGame=function(){if(augDialog.open)augDialog.close();if(catalogDialog.open)catalogDialog.close();stopBombChain();bombChainPaused=false;aug=freshAug();document.getElementById("augmentBurst")?.replaceChildren();baseStart();renderAug();if(gameMode==='augment')offerAug();};
 const baseRecordKey=recordKey;
 recordKey=function(){return gameMode==='augment'?'chapple-best-score-augment':baseRecordKey();};
 const baseValid=isValidSum;
 isValidSum=function(sum){if(gameMode!=='augment')return baseValid(sum);return sum>0&&(has('multiple')?sum%10===0:sum===(has('reverse')?aug.target:10));};
 const baseCombo=getComboLimit;
-getComboLimit=function(c=combo){if(has('train'))return 2000;return Math.max(2000,baseCombo(c)+(has('breath')?500:0)-(has('multiple')?1000:0));};
+getComboLimit=function(c=combo){if(has('train'))return 2000;return Math.max(2000,baseCombo(c)-(has('multiple')?1000:0));};
 const baseMultiplier=getMultiplier;
-getMultiplier=function(){if(gameMode!=='augment')return baseMultiplier();return (comboBoostActive?(has('blue')?2.5:2):1)*(itemBoostActive?(has('double')?2:1.5):1)*(has('reverse')||has('money')?3:has('train')?4:1)*(has('danger')&&!has('money')&&timeLeft<=10?2:1)*(has('master')?1.2:1);};
+getMultiplier=function(){if(gameMode!=='augment')return baseMultiplier();return (comboBoostActive?2:1)*(itemBoostActive?1.5:1)*(has('reverse')||has('money')?3:has('train')?4:1);};
 const baseBuild=buildBoard;
 buildBoard=function(){baseBuild();if(gameMode==='augment'){
  if(has('reverse')&&!findValidRectangles().length){[5,5,5,5].forEach((v,i)=>{apples[i].dataset.value=v;apples[i].textContent=v;});}
- markSpecial();if(has('orchard'))timeLeft+=3;
+ markSpecial();
 }};
-function markSpecial(){
- apples.forEach(a=>{delete a.dataset.special;a.style.removeProperty('box-shadow');});
- const slots=apples.filter(a=>!a.classList.contains('removed'));
- for(let i=slots.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[slots[i],slots[j]]=[slots[j],slots[i]];}
- function mark(n,type,color){for(let i=0;i<n&&slots.length;i++){const a=slots.pop();a.dataset.special=type;a.style.boxShadow='inset 0 0 0 3px '+color;}}
- if(has('rich')||has('golden'))mark(has('rich')?5:3,'gold','#e6ae16');if(has('frost'))mark(2,'ice','#49cdeb');if(has('gift'))mark(1,'gift','#b773e4');
-}
 const baseClear=checkClear;
 checkClear=function(){if(gameMode!=='augment')return baseClear();if(!playing||refilling)return;
  if(has('rain')&&aug.removed>=aug.nextRain){aug.nextRain+=50;offerAug(()=>checkClear());return;}
@@ -3181,35 +3223,139 @@ startTimer=function(){if(gameMode!=='augment')return baseTimer();if(timerStarted
  timerText.textContent=has('money')?'∞':timeLeft;
  },1000);};
 const baseEnd=endGame;
-endGame=function(){if(has('money')&&score<=0){score=aug.peak;timeLeft=0;}baseEnd();};
-function augSuccess(input){
- let selected=[...new Set(input)];const original=[...selected];const now=Date.now();
- combo=lastSuccessTime&&now-lastSuccessTime<=getComboLimit()?combo+1:1;lastSuccessTime=now;comboText.textContent=combo;
- let extra=0;const n=original.length;const rows=original.map(a=>+a.dataset.row),cols=original.map(a=>+a.dataset.col);
- if(has('harvest'))extra+=n>=10?50:n>=6?10:n>=4?5:n===3?3:0;
- if(has('row')&&n>1&&new Set(rows).size===1)extra+=10;if(has('col')&&n>1&&new Set(cols).size===1)extra+=10;
- if(has('streak')&&combo>=10)extra+=5;if(has('steady'))extra++;
- if(has('space')){let empty=0;for(let r=Math.min(...rows);r<=Math.max(...rows);r++)for(let c=Math.min(...cols);c<=Math.max(...cols);c++)if(apples[r*COLS+c].classList.contains('removed'))empty++;if(empty>=3)extra+=8;}
- if(has('chain'))for(const a of original){const r=+a.dataset.row,c=+a.dataset.col;for(const [dr,dc]of [[0,1],[0,-1],[1,0],[-1,0]]){const nr=r+dr,nc=c+dc;if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS){const b=apples[nr*COLS+nc];if(!b.classList.contains('removed')&&!selected.includes(b))selected.push(b);}}}
- let base=0;for(const a of selected){const r=+a.dataset.row,c=+a.dataset.col;base+=has('edge')&&(r===0||r===ROWS-1||c===0||c===COLS-1)?5:1;
- if(a.dataset.special==='gold')extra+=has('rich')?10:5;if(a.dataset.special==='ice')timeLeft+=2;if(a.dataset.special==='gift')document.getElementById('giftNotice').textContent=giveReward();
- a.classList.remove('selected','held','hint');a.classList.add('removed');delete a.dataset.special;a.style.removeProperty('box-shadow');}
- const earned=(base+extra)*getMultiplier();score+=earned;recordHarvest(selected.length);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);aug.success++;aug.removed+=selected.length;
- if(has('rest')&&aug.success%5===0)timeLeft++;if(has('rhythm')&&aug.success%10===0)timeLeft+=3;if(has('train'))timeLeft++;
- if(combo%(has('ignition')?8:10)===0){activateComboBoost();if(has('fire'))comboBoostEnd+=3000;}else if(has('fuel')&&comboBoostActive)comboBoostEnd=Math.min(now+15000,comboBoostEnd+500);
- const gifts=[];while(score>=nextTimeBonus){nextTimeBonus+=100;if(!has('money'))timeLeft+=has('bonus')?25:20;gifts.push(giveReward());if(has('gifts'))gifts.push(giveReward());}
- if(gifts.length){showMilestone(nextTimeBonus-100,gifts);document.getElementById('giftNotice').textContent=gifts.join(' · ');}
- if(has('reverse'))aug.target=aug.target===20?10:aug.target+5;
- if(has('rain'))rainFill();
- currentSumText.textContent='0';statusText.textContent='🔥 '+combo+'콤보! +'+formatScore(earned)+'점';timerText.textContent=has('money')?'∞':timeLeft;
- updateItems();updateRecord();updateMultiplier();renderAug();if(hintActive)showHints();checkClear();
+endGame=function(){if(has('money')&&score<=0){score=aug.peak;timeLeft=0;}baseEnd();if(!playing)stopBombChain();};
+// Additional destruction is resolved once per successful player selection.
+// Sets prevent double scoring, while bomb queues are bounded by board size.
+// Additional destruction is resolved once per successful player selection.
+// Sets prevent double scoring, while bomb queues are bounded by board size.
+// Additional destruction is resolved once per successful player selection.
+// Sets prevent double scoring, while bomb queues are bounded by board size.
+function liveApple(a){return a&&!a.classList.contains('removed');}
+function clearAppleTraits(a){delete a.dataset.goldBonus;delete a.dataset.bomb;delete a.dataset.frost;delete a.dataset.special;delete a.dataset.traits;a.style.removeProperty('box-shadow');}
+function syncAppleTraits(a){
+ const traits=[];if(a.dataset.goldBonus)traits.push('★');if(a.dataset.bomb)traits.push('💣');if(a.dataset.frost)traits.push('❄');
+ a.dataset.traits=traits.join('');
+ a.style.boxShadow=traits.length?'inset 0 0 0 2px '+(a.dataset.bomb?'#bf67e8':a.dataset.frost?'#59cbea':'#e6ae16'):'';
 }
-function rainFill(){
+function markSpecial(){apples.forEach(syncAppleTraits);}
+function shuffled(items){const list=[...items];for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[list[i],list[j]]=[list[j],list[i]];}return list;}
+function adjacent(a){const r=+a.dataset.row,c=+a.dataset.col;return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([y,x])=>y>=0&&y<ROWS&&x>=0&&x<COLS).map(([y,x])=>apples[y*COLS+x]);}
+function resolveAugmentHarvest(original,automatic=false){
+ const selected=new Set(original),events=new Set();const first=original[0],r=+first.dataset.row,c=+first.dataset.col,value=+first.dataset.value;
+ aug.progress ||= {};
+ if(!automatic)for(const a of AUGMENTS)if(has(a.id)&&a.tier!=='prism')aug.progress[a.id]=(aug.progress[a.id]||0)+1;
+ const due=(id,n)=>!automatic&&has(id)&&aug.progress[id]%n===0,level=augmentLevel;
+ const remaining=()=>apples.filter(a=>liveApple(a)&&!selected.has(a));
+ function add(id,list){let changed=false;for(const a of list)if(liveApple(a)&&!selected.has(a)){selected.add(a);changed=true;}if(changed)events.add(id);}
+ const random=(id,n)=>add(id,shuffled(remaining()).slice(0,n));
+ const nearest=(id,n,row=r,col=c)=>add(id,remaining().sort((a,b)=>(Math.abs(+a.dataset.row-row)+Math.abs(+a.dataset.col-col))-(Math.abs(+b.dataset.row-row)+Math.abs(+b.dataset.col-col))).slice(0,n));
+ const area=(id,row,col,radius)=>add(id,remaining().filter(a=>Math.abs(+a.dataset.row-row)<=radius&&Math.abs(+a.dataset.col-col)<=radius));
+ if(!automatic){
+ if(has('chain'))add('chain',original.flatMap(adjacent));
+ if(has('scatter'))random('scatter',level('scatter'));
+ if(has('mirror'))nearest('mirror',level('mirror'),r,COLS-1-c);
+ if(has('magnet'))nearest('magnet',level('magnet'));
+ if(has('twins'))add('twins',shuffled(remaining().filter(a=>+a.dataset.value===value)).slice(0,level('twins')));
+ if(due('ember',4))random('ember',3*level('ember'));
+ function band(center,count,max){count=Math.min(count,max);const start=Math.max(0,Math.min(max-count,center-Math.floor((count-1)/2)));return x=>x>=start&&x<start+count;}
+ if(due('rowSweep',4))add('rowSweep',remaining().filter(a=>band(r,level('rowSweep'),ROWS)(+a.dataset.row)));
+ if(due('columnSweep',4))add('columnSweep',remaining().filter(a=>band(c,level('columnSweep'),COLS)(+a.dataset.col)));
+ if(due('crossBlast',5))add('crossBlast',remaining().filter(a=>band(r,level('crossBlast'),ROWS)(+a.dataset.row)||band(c,level('crossBlast'),COLS)(+a.dataset.col)));
+ const numbers=(n,paired=false)=>{const set=new Set();for(let i=0;i<Math.min(n,9);i++){const v=(value-1+i)%9+1;set.add(v);if(paired)set.add(10-v);}return set;};
+ if(due('numberHunt',5))add('numberHunt',remaining().filter(a=>numbers(level('numberHunt')).has(+a.dataset.value)));
+ if(due('gravity',3)&&level('gravity')>1)nearest('gravity',level('gravity')-1,ROWS-1,c);
+ if(due('swarm',3))nearest('swarm',6*level('swarm'));
+ if(due('meteor',5))for(let i=0;i<Math.min(level('meteor'),ROWS*COLS);i++){const target=shuffled(remaining())[0];if(!target)break;area('meteor',+target.dataset.row,+target.dataset.col,2);}
+ if(due('laser',4))add('laser',remaining().filter(a=>band(r,3*level('laser'),ROWS)(+a.dataset.row)));
+ if(due('lightning',4))add('lightning',remaining().filter(a=>numbers(level('lightning'),true).has(+a.dataset.value)));
+ if(due('blackhole',6))nearest('blackhole',25*level('blackhole'),(ROWS-1)/2,(COLS-1)/2);
+ if(due('supernova',12))add('supernova',remaining());
+ if(due('border',5))add('border',remaining().filter(a=>Math.min(+a.dataset.row,ROWS-1-a.dataset.row,+a.dataset.col,COLS-1-a.dataset.col)<level('border')));
+ if(has('drones'))random('drones',5*level('drones'));
+ if(has('domino'))random('domino',3*level('domino'));
+ }
+ const detonated=new Set();
+ function detonate(){for(const a of selected)if(a.dataset.bomb&&!detonated.has(a)){detonated.add(a);area('bombs',+a.dataset.row,+a.dataset.col,Math.max(Number(a.dataset.bomb),level('bombs')));events.add('bombs');}}
+ detonate();
+ if(has('domino')){const extras=[...selected].filter(a=>!original.includes(a));add('domino',extras.flatMap(adjacent));detonate();}
+ let bonus=0,freezeSeconds=0;
+ for(const a of selected){bonus+=Number(a.dataset.goldBonus)||0;if(a.dataset.frost){freezeSeconds+=Number(a.dataset.frost);events.add('timeCrystal');}}
+ if(due('icePulse',5)){freezeSeconds+=2*level('icePulse');events.add('icePulse');}
+ if(due('glacier',8)){freezeSeconds+=6*level('glacier');events.add('glacier');}
+ return {selected:[...selected],bonus,freezeSeconds,events,due,automatic,bombCount:detonated.size,scoreFactor:due('supernova',12)?level('supernova'):1};
+}
+function freezeFor(seconds){if(!seconds)return;const now=Date.now();freezeEnd=Math.max(now,freezeActive?freezeEnd:now)+seconds*1000;freezeActive=true;document.body.classList.add('freeze');}
+function plantTrait(key,value,count){
+ const candidates=shuffled(apples.filter(a=>liveApple(a)&&(Number(a.dataset[key])||0)<value));
+ for(const a of candidates.slice(0,count)){a.dataset[key]=value;syncAppleTraits(a);a.animate([{filter:'brightness(1.8)'},{filter:'brightness(1)'}],{duration:400});}
+ return Math.min(count,candidates.length);
+}
+function stampSolution(count=1){
+ const target=has('reverse')?aug.target:10;
+ const values=has('balance')?[5,5]:target===20?[2,9,9]:target===15?[6,9]:[1,9];
+ const slots=[];for(let r=0;r<ROWS;r++)for(let c=0;c<=COLS-values.length;c+=values.length)slots.push([r,c]);
+ for(const [r,c]of shuffled(slots).slice(0,count))values.forEach((value,i)=>{const a=apples[r*COLS+c+i];a.dataset.value=value;a.textContent=value;a.classList.remove('removed','selected','hint','held');syncAppleTraits(a);a.animate([{opacity:.2,transform:'scale(.6)'},{opacity:1,transform:'scale(1)'}],{duration:350});});
+}
+function afterAugmentHarvest(effect){
+ const {due,events,selected}=effect,level=augmentLevel;
+ if(has('rain'))rainFill();else if(due('gravity',3)){settleApples(false);events.add('gravity');}
+ if(!effect.automatic){
+ if(due('alchemy',2)){const live=apples.filter(a=>liveApple(a)&&+a.dataset.value>1).sort((a,b)=>+b.dataset.value-+a.dataset.value);for(const a of live.slice(0,level('alchemy'))){a.dataset.value=1;a.textContent='1';events.add('alchemy');}}
+ if(has('seed')&&plantTrait('goldBonus',5*level('seed'),level('seed')))events.add('seed');
+ if(has('bombs')&&plantTrait('bomb',level('bombs'),level('bombs')))events.add('bombs');
+ if(has('timeCrystal')&&plantTrait('frost',4*level('timeCrystal'),level('timeCrystal')))events.add('timeCrystal');
+ if(due('midas',4)){const live=apples.filter(liveApple),rows=shuffled(new Set(live.map(a=>a.dataset.row))).slice(0,level('midas'));for(const a of live.filter(a=>rows.includes(a.dataset.row))){a.dataset.goldBonus=Math.max(5*level('midas'),Number(a.dataset.goldBonus)||0);syncAppleTraits(a);}if(rows.length)events.add('midas');}
+ if(due('goldRush',6)){for(const a of apples.filter(liveApple)){a.dataset.goldBonus=Math.max(10*level('goldRush'),Number(a.dataset.goldBonus)||0);syncAppleTraits(a);}events.add('goldRush');}
+ if(due('pairing',3)){stampSolution(level('pairing'));events.add('pairing');}
+ if(has('trail')){hintActive=true;hintEnd=Math.max(hintEnd,Date.now()+2000*level('trail'));events.add('trail');}
+ // Chain ignition supplies a starter when there are no planted bombs yet.
+ if(has('detonator')&&!apples.some(a=>liveApple(a)&&a.dataset.bomb)){if(plantTrait('bomb',Math.max(1,level('bombs')),level('detonator')))events.add('detonator');}
+ }
+ if(has('phoenix')&&effect.bombCount){const amount=effect.bombCount*level('phoenix');if(plantTrait('bomb',Math.max(1,level('bombs')),amount))events.add('phoenix');}
+ if(has('delivery')){aug.deliveryCount=(aug.deliveryCount||0)+selected.length;const gifts=[];while(aug.deliveryCount>=30){aug.deliveryCount-=30;for(let i=0;i<level('delivery');i++)gifts.push(giveReward());}if(gifts.length){document.getElementById('giftNotice').textContent=gifts.join(' · ');events.add('delivery');}}
+ freezeFor(effect.freezeSeconds);
+}
+function settleApples(refill){
  for(let c=0;c<COLS;c++){
- const values=[];for(let r=ROWS-1;r>=0;r--){const a=apples[r*COLS+c];if(!a.classList.contains('removed'))values.push({v:a.dataset.value,s:a.dataset.special});}
- for(let r=ROWS-1;r>=0;r--){const a=apples[r*COLS+c],data=values[ROWS-1-r];a.dataset.value=data?data.v:1+Math.floor(Math.random()*9);a.textContent=a.dataset.value;a.classList.remove('removed','selected','held','hint');delete a.dataset.special;a.style.removeProperty('box-shadow');if(data?.s){a.dataset.special=data.s;a.style.boxShadow='inset 0 0 0 3px '+({gold:'#e6ae16',ice:'#49cdeb',gift:'#b773e4'}[data.s]);}if(!data)a.animate([{opacity:0,transform:'translateY(-18px)'},{opacity:1,transform:'translateY(0)'}],{duration:300});}
+  const values=[];for(let r=ROWS-1;r>=0;r--){const a=apples[r*COLS+c];if(liveApple(a))values.push({value:a.dataset.value,gold:a.dataset.goldBonus,bomb:a.dataset.bomb,frost:a.dataset.frost});}
+  for(let r=ROWS-1;r>=0;r--){const a=apples[r*COLS+c],data=values[ROWS-1-r];clearAppleTraits(a);a.classList.remove('selected','held','hint');
+   if(data||refill){a.classList.remove('removed');a.dataset.value=data?data.value:1+Math.floor(Math.random()*9);a.textContent=a.dataset.value;if(data){if(data.gold)a.dataset.goldBonus=data.gold;if(data.bomb)a.dataset.bomb=data.bomb;if(data.frost)a.dataset.frost=data.frost;}syncAppleTraits(a);a.animate([{opacity:.45,transform:'translateY(-10px)'},{opacity:1,transform:'translateY(0)'}],{duration:250});}
+   else a.classList.add('removed');
+  }
  }
 }
+function rainFill(){settleApples(true);}
+function showAugmentBurst(original,selected,events){
+ let layer=document.getElementById('augmentBurst');if(!layer){layer=document.createElement('div');layer.id='augmentBurst';document.getElementById('gameWrapper').append(layer);}layer.replaceChildren();
+ const extra=selected.filter(a=>!original.includes(a)),bounds=game.getBoundingClientRect(),wrap=document.getElementById('gameWrapper').getBoundingClientRect();
+ const tier=events.has('supernova')||[...events].some(id=>AUGMENTS.find(a=>a.id===id)?.tier==='diamond')?'diamond':'gold';
+ for(const a of extra.slice(0,60)){const rect=a.getBoundingClientRect(),spark=document.createElement('span');spark.className='harvestSpark '+tier;spark.textContent='✦';spark.style.cssText='left:'+(rect.left-wrap.left)+'px;top:'+(rect.top-wrap.top)+'px;width:'+rect.width+'px;height:'+rect.height+'px';layer.append(spark);spark.animate([{opacity:1,transform:'scale(.6)'},{opacity:0,transform:'scale(1.8)'}],{duration:500}).finished.then(()=>spark.remove()).catch(()=>{});}
+ const names=[...events].map(id=>AUGMENTS.find(a=>a.id===id)?.name).filter(Boolean);
+ if(names.length){const toast=document.createElement('div');toast.className='augmentToast '+tier;toast.textContent=names.slice(0,2).join(' + ')+(names.length>2?' 외 '+(names.length-2)+'개':'')+(extra.length?' · 추가 '+extra.length+'개!':'');layer.append(toast);toast.animate([{opacity:0,transform:'translate(-50%,6px)'},{opacity:1,transform:'translate(-50%,0)',offset:.15},{opacity:1,offset:.8},{opacity:0}],{duration:1300}).finished.then(()=>toast.remove()).catch(()=>{});}
+ aug.lastEffects={names,extra:extra.length};
+}
+function augSuccess(input,{automatic=false}={}){
+ const original=[...new Set(input)].filter(liveApple);if(!original.length||!playing||refilling)return;
+ const now=Date.now();if(!automatic){combo=lastSuccessTime&&now-lastSuccessTime<=getComboLimit()?combo+1:1;lastSuccessTime=now;comboText.textContent=combo;}
+ const effect=resolveAugmentHarvest(original,automatic),selected=effect.selected;
+ // Capture effects at original positions, before gravity/rain reuses cells.
+ showAugmentBurst(original,selected,effect.events);
+ for(const a of selected){a.classList.remove('selected','held','hint');a.classList.add('removed');clearAppleTraits(a);}
+ const earned=(selected.length+effect.bonus)*getMultiplier()*effect.scoreFactor;score+=earned;recordHarvest(selected.length,automatic);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);if(!automatic)aug.success++;aug.removed+=selected.length;
+ if(!automatic&&has('train'))timeLeft++;
+ if(!automatic&&combo%10===0)activateComboBoost();
+ const gifts=[];while(score>=nextTimeBonus){nextTimeBonus+=100;if(!has('money'))timeLeft+=20;gifts.push(giveReward());}
+ if(gifts.length){showMilestone(nextTimeBonus-100,gifts);document.getElementById('giftNotice').textContent=gifts.join(' · ');}
+ if(!automatic&&has('reverse'))aug.target=aug.target===20?10:aug.target+5;
+ afterAugmentHarvest(effect);
+ // Transform-only abilities also get an explicit notification.
+ const names=[...effect.events].map(id=>AUGMENTS.find(a=>a.id===id)?.name).filter(Boolean);aug.lastEffects={names,extra:selected.length-original.length};
+ const toast=document.querySelector('#augmentBurst .augmentToast');if(toast)toast.textContent=names.slice(0,2).join(' + ')+(names.length>2?' 외 '+(names.length-2)+'개':'')+(aug.lastEffects.extra?' · 추가 '+aug.lastEffects.extra+'개!':'');
+ else if(names.length)showAugmentBurst([],[],effect.events);
+ currentSumText.textContent='0';statusText.textContent='🔥 '+combo+'콤보! +'+formatScore(earned)+'점';timerText.textContent=has('money')?'∞':timeLeft;
+ updateItems();updateRecord();updateMultiplier();renderAug();if(hintActive)showHints();checkClear();scheduleBombChain();
+}
+
 document.addEventListener('pointerup',e=>{
  if(gameMode!=='augment'||has('solo')||e.pointerId!==activePointerId||!dragging||!playing||refilling)return;
  e.stopImmediatePropagation();const picked=apples.filter(a=>a.classList.contains('selected')&&!a.classList.contains('removed'));cancelSelection();if(!picked.length)return;
@@ -3237,27 +3383,27 @@ showHints=function(){if(gameMode!=='augment')return baseHints();apples.forEach(a
  if(has('balance')){const pair=balancePair();if(pair)pair.flat().forEach(a=>a.classList.add('hint'));return;}
  if(has('solo')){const sums=new Map([[0,[]]]);for(const a of apples.filter(a=>!a.classList.contains('removed'))){for(const [s,cells]of [...sums]){const n=s+Number(a.dataset.value);if(n<=10&&!sums.has(n))sums.set(n,[...cells,a]);}if(sums.has(10))break;}sums.get(10)?.forEach(a=>a.classList.add('hint'));return;}
  // Existing rectangle finder uses inclusive row/column bounds.
- const rects=findValidRectangles().slice(0,has('map')?5:3);for(const rect of rects)for(let r=rect.top;r<=rect.bottom;r++)for(let c=rect.left;c<=rect.right;c++){const a=apples[r*COLS+c];if(!a.classList.contains('removed'))a.classList.add('hint');}
+ const rects=findValidRectangles().slice(0,3+Math.max(0,augmentLevel('trail')-1)*2);for(const rect of rects)for(let r=rect.top;r<=rect.bottom;r++)for(let c=rect.left;c<=rect.right;c++){const a=apples[r*COLS+c];if(!a.classList.contains('removed'))a.classList.add('hint');}
 };
 for(const [button,type]of [[boostItem,'boost'],[freezeItem,'freeze'],[hintItem,'hint']])button.addEventListener('click',e=>{
  if(gameMode!=='augment')return;e.stopImmediatePropagation();if(!playing||refilling||!timerStarted||button.disabled)return;
- const free=has('thrift')&&Math.random()<.25,now=Date.now();
- if(type==='boost'){if(!free)boostCount--;itemBoostActive=true;itemBoostEnd=now+10000+(has('juice')?3000:0);}
- if(type==='freeze'){if(!free)freezeCount--;freezeActive=true;freezeEnd=now+10000+(has('ice')?3000:0);document.body.classList.add('freeze');}
- if(type==='hint'){if(!free)hintCount--;hintActive=true;hintEnd=now+10000+(has('guide')?5000:0);showHints();}
+ const free=false,now=Date.now();
+ if(type==='boost'){if(!free)boostCount--;itemBoostActive=true;itemBoostEnd=now+10000;}
+ if(type==='freeze'){if(!free)freezeCount--;freezeActive=true;freezeEnd=now+10000;document.body.classList.add('freeze');}
+ if(type==='hint'){if(!free)hintCount--;hintActive=true;hintEnd=now+10000;showHints();}
  updateItems();updateMultiplier();statusText.textContent=(free?'✨ 수량 보존! ':'')+'아이템 사용!';
 },true);
 // Run before the legacy combo-expiry callback by keeping its clock protected.
 setInterval(()=>{const now=Date.now(),delta=now-aug.lastTick;aug.lastTick=now;if(gameMode!=='augment'||!playing||refilling)return;
- if(has('still')&&freezeActive&&lastSuccessTime)lastSuccessTime+=delta;
+ if(has('glacier')&&freezeActive&&lastSuccessTime)lastSuccessTime+=delta;
 },20);
 bestScore=readBestScore();startGame();updateRecord();
 
 
 // Session-only results; saved high scores and inventory keep their existing keys.
 let runStats = freshRunStats();
-function freshRunStats(){return {apples:0,harvests:0,maxCombo:0,boosts:0,items:0,seconds:0};}
-function recordHarvest(count){runStats.apples+=count;runStats.harvests++;runStats.maxCombo=Math.max(runStats.maxCombo,combo);playSound('harvest');}
+function freshRunStats(){return {apples:0,harvests:0,maxCombo:0,boosts:0,items:0,seconds:0,chainWaves:0};}
+function recordHarvest(count,automatic=false){runStats.apples+=count;if(automatic)runStats.chainWaves++;else runStats.harvests++;runStats.maxCombo=Math.max(runStats.maxCombo,combo);playSound('harvest');}
 let soundEnabled=false;
 try{soundEnabled=localStorage.getItem('chapple-sound')==='on';}catch{}
 let soundContext=null;
@@ -3296,11 +3442,11 @@ const resultAbilities=document.createElement('div');resultAbilities.id='resultAb
 function renderResults(){
  const names={classic:'클래식',multiples:'차곡차곡',dark:'차단막',beginner:'차근차근 연습모드',augment:'차별적인 능력'};
  const seconds=runStats.seconds;
- const rows=[['플레이 모드',names[gameMode]],['내 최고기록',formatScore(bestScore)+'점'],['최고 콤보',runStats.maxCombo+'콤보'],['수확한 사과',runStats.apples+'개'],['수확 성공',runStats.harvests+'번'],['부스트 발동',runStats.boosts+'번'],['사용한 아이템',runStats.items+'개'],['플레이 시간',Math.floor(seconds/60)+'분 '+seconds%60+'초']];
+ const rows=[['플레이 모드',names[gameMode]],['내 최고기록',formatScore(bestScore)+'점'],['최고 콤보',runStats.maxCombo+'콤보'],['수확한 사과',runStats.apples+'개'],['수확 성공',runStats.harvests+'번'],['자동 연쇄',runStats.chainWaves+'번'],['부스트 발동',runStats.boosts+'번'],['사용한 아이템',runStats.items+'개'],['플레이 시간',Math.floor(seconds/60)+'분 '+seconds%60+'초']];
  resultsTable.replaceChildren();const caption=document.createElement('caption');caption.textContent='게임 결과표';resultsTable.append(caption);const body=document.createElement('tbody');
  for(const [label,value]of rows){const tr=document.createElement('tr'),th=document.createElement('th'),td=document.createElement('td');th.scope='row';th.textContent=label;td.textContent=value;tr.append(th,td);body.append(tr);}resultsTable.append(body);
  resultAbilities.replaceChildren();resultAbilities.hidden=gameMode!=='augment';
- if(gameMode==='augment'){const title=document.createElement('p');title.textContent='고른 증강 · '+aug.owned.size+'개';resultAbilities.append(title);for(const a of AUGMENTS.filter(a=>aug.owned.has(a.id))){const tag=document.createElement('span');tag.className='aug-'+a.tier;tag.textContent=a.name;tag.title=a.desc;resultAbilities.append(tag);}}
+ if(gameMode==='augment'){const title=document.createElement('p');title.textContent='고른 증강 · '+aug.owned.size+'종 / 총 '+augmentStackTotal()+'개';resultAbilities.append(title);for(const a of AUGMENTS.filter(a=>aug.owned.has(a.id))){const tag=document.createElement('span');tag.className='aug-'+a.tier;tag.textContent=a.name+' ×'+augmentLevel(a.id);tag.title=augmentDescription(a,augmentLevel(a.id));resultAbilities.append(tag);}}
 }
 const statsEnd=endGame;
 endGame=function(){const wasPlaying=playing;statsEnd();if(wasPlaying&&!playing){if(catalogDialog.open)catalogDialog.close();if(helpDialog.open)helpDialog.close();if(modeDialog.open)modeDialog.close();renderResults();playSound('end');restartButton.focus();}};
