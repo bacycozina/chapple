@@ -790,6 +790,8 @@ body {padding:8px 68px 8px 10px;}
 @media(prefers-reduced-motion:reduce){.harvestSpark{display:none}}
 
 #augmentBar{flex-wrap:wrap}#bombChainToggle{font-size:11px;min-height:38px;}
+#augmentBar::after {content:attr(data-auto);font-size:11px;color:#537d36;}
+#autoAugmentEnable {margin-top:12px;padding:9px 18px;border:0;border-radius:18px;background:#367f46;color:white;font-weight:bold;cursor:pointer;}
 </style>
 </head>
 
@@ -3125,6 +3127,7 @@ function renderAug(){
  }
  }
  updateChainButton();
+ augBar.dataset.auto=autoAugment?"자동선택 중 · 아무 곳이나 눌러 해제":"";
  if(catalogDialog.open)renderCatalog();
  if(gameMode==='augment')document.getElementById('modeRule').textContent='✨ 차별적인 능력 · '+(aug.prism?AUGMENTS.find(a=>a.id===aug.prism).name:'합 10')+(has('reverse')?' · 목표 '+aug.target:'');
 }
@@ -3145,20 +3148,40 @@ function pickCandidates(random=Math.random){
  }
  return result;
 }
+let autoAugment=false,autoAugmentTimer=null,pendingAugment=null;
+function resetAutoAugment(){autoAugment=false;clearTimeout(autoAugmentTimer);autoAugmentTimer=null;pendingAugment=null;}
+function chooseAugment(a){
+ if(!pendingAugment||!playing)return;
+ const after=pendingAugment.after;pendingAugment=null;clearTimeout(autoAugmentTimer);autoAugmentTimer=null;
+ const paused=Date.now()-refillStarted;
+ if(lastSuccessTime)lastSuccessTime+=paused;
+ if(comboBoostActive)comboBoostEnd+=paused;if(itemBoostActive)itemBoostEnd+=paused;if(freezeActive)freezeEnd+=paused;if(hintActive)hintEnd+=paused;
+ aug.levels ||= {};aug.levels[a.id]=augmentLevel(a.id)+1;aug.owned.add(a.id);if(a.tier==='prism')aug.prism=a.id;
+ if(a.id==='money'){score=Math.max(score,50);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);timerText.textContent='∞';}
+ aug.choosing=false;refilling=false;augDialog.close();markSpecial();renderAug();updateItems();after();scheduleBombChain();
+}
+function queueAutoAugment(){
+ clearTimeout(autoAugmentTimer);
+ autoAugmentTimer=setTimeout(()=>{autoAugmentTimer=null;if(autoAugment&&pendingAugment&&playing){const choices=pendingAugment.choices;chooseAugment(choices[Math.floor(Math.random()*choices.length)]);}},160);
+}
+function disableAutoAugment(e){
+ if(!autoAugment)return;
+ autoAugment=false;clearTimeout(autoAugmentTimer);autoAugmentTimer=null;
+ if(e){e.preventDefault();e.stopImmediatePropagation();cancelSelection();}
+ renderAug();
+ if(pendingAugment){augDialog.showModal();augDialog.querySelector('h2').focus();}
+}
+let consumeAutoClick=false;
+window.addEventListener('pointerdown',e=>{if(autoAugment){consumeAutoClick=true;disableAutoAugment(e);}else consumeAutoClick=false;},true);
+window.addEventListener('click',e=>{if(consumeAutoClick){consumeAutoClick=false;e.preventDefault();e.stopImmediatePropagation();return;}if(autoAugment)disableAutoAugment(e);},true);
 function offerAug(after=()=>{}){
  const choices=pickCandidates();if(!choices.length){after();return;}
  cancelSelection();aug.first=[];aug.taps=[];apples.forEach(a=>a.classList.remove('held'));
- aug.choosing=true;refilling=true;refillStarted=Date.now();updateItems();
- augDialog.innerHTML='<h2 tabindex="-1" autofocus>'+(aug.owned.size===0?'🌈 시작할 프리즘을 골라주세요':'✨ 능력을 골라주세요')+'</h2><p>한 판 동안 계속 유지돼요 · 선택 중 시간 정지</p><div class="augChoices"></div>';
- for(const a of choices){const b=document.createElement('button');b.className='augCard aug-'+a.tier;b.innerHTML='<small>'+tiers[a.tier]+(a.tier!=='prism'?(has(a.id)?' · ×'+augmentLevel(a.id)+' → ×'+(augmentLevel(a.id)+1):' · 중첩 가능'):'')+'</small><strong>'+a.name+'</strong><span>'+augmentDescription(a,a.tier==='prism'?1:augmentLevel(a.id)+1)+'</span>';b.onclick=()=>{
-   const paused=Date.now()-refillStarted;
-   if(lastSuccessTime)lastSuccessTime+=paused;
-   if(comboBoostActive)comboBoostEnd+=paused;if(itemBoostActive)itemBoostEnd+=paused;if(freezeActive)freezeEnd+=paused;if(hintActive)hintEnd+=paused;
-   aug.levels ||= {};aug.levels[a.id]=augmentLevel(a.id)+1;aug.owned.add(a.id);if(a.tier==='prism')aug.prism=a.id;
-   if(a.id==='money'){score=Math.max(score,50);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);timerText.textContent='∞';}
-   aug.choosing=false;refilling=false;augDialog.close();markSpecial();renderAug();updateItems();after();
-  };augDialog.querySelector('.augChoices').append(b);}
- augDialog.showModal();augDialog.querySelector('h2').focus();
+ aug.choosing=true;refilling=true;refillStarted=Date.now();updateItems();pendingAugment={choices,after};
+ augDialog.innerHTML='<h2 tabindex="-1" autofocus>'+(aug.owned.size===0?'🌈 시작할 프리즘을 골라주세요':'✨ 능력을 골라주세요')+'</h2><p>한 판 동안 계속 유지돼요 · 선택 중 시간 정지</p><div class="augChoices"></div><button type="button" id="autoAugmentEnable">▶ 자동선택 켜기</button><p style="font-size:12px;margin:6px">후보 중 무작위 선택 · 아무 곳이나 누르면 해제</p>';
+ for(const a of choices){const b=document.createElement('button');b.className='augCard aug-'+a.tier;b.innerHTML='<small>'+tiers[a.tier]+(a.tier!=='prism'?(has(a.id)?' · ×'+augmentLevel(a.id)+' → ×'+(augmentLevel(a.id)+1):' · 중첩 가능'):'')+'</small><strong>'+a.name+'</strong><span>'+augmentDescription(a,a.tier==='prism'?1:augmentLevel(a.id)+1)+'</span>';b.onclick=()=>chooseAugment(a);augDialog.querySelector('.augChoices').append(b);}
+ augDialog.querySelector('#autoAugmentEnable').onclick=()=>{autoAugment=true;augDialog.close();renderAug();queueAutoAugment();};
+ if(autoAugment)queueAutoAugment();else{augDialog.showModal();augDialog.querySelector('h2').focus();}
 }
 // One scheduled wave at a time: no recursion depth or total-wave limit.
 let bombChainTimer=null;
@@ -3177,14 +3200,14 @@ function scheduleBombChain(){
  bombChainTimer=setTimeout(()=>{
   bombChainTimer=null;if(epoch!==bombChainEpoch||bombChainPaused||!playing||!has('detonator'))return;
   // Let the player select, inspect abilities, and choose rewards safely.
-  if(refilling||aug.choosing||catalogDialog.open||helpDialog.open||modeDialog.open||dragging||aug.first.length||aug.taps.length){scheduleBombChain();return;}
+  if(harvestBusy||refilling||aug.choosing||catalogDialog.open||helpDialog.open||modeDialog.open||dragging||aug.first.length||aug.taps.length){scheduleBombChain();return;}
   const bombs=apples.filter(a=>liveApple(a)&&a.dataset.bomb).slice(0,augmentLevel('detonator'));
   if(bombs.length)augSuccess(bombs,{automatic:true});
  },240);
 }
 
 const baseStart=startGame;
-startGame=function(){if(augDialog.open)augDialog.close();if(catalogDialog.open)catalogDialog.close();stopBombChain();bombChainPaused=false;aug=freshAug();document.getElementById("augmentBurst")?.replaceChildren();baseStart();renderAug();if(gameMode==='augment')offerAug();};
+startGame=function(){resetAutoAugment();cancelHarvestMotion();if(augDialog.open)augDialog.close();if(catalogDialog.open)catalogDialog.close();stopBombChain();bombChainPaused=false;aug=freshAug();document.getElementById("augmentBurst")?.replaceChildren();baseStart();renderAug();if(gameMode==='augment')offerAug();};
 const baseRecordKey=recordKey;
 recordKey=function(){return gameMode==='augment'?'chapple-best-score-augment':baseRecordKey();};
 const baseValid=isValidSum;
@@ -3223,7 +3246,7 @@ startTimer=function(){if(gameMode!=='augment')return baseTimer();if(timerStarted
  timerText.textContent=has('money')?'∞':timeLeft;
  },1000);};
 const baseEnd=endGame;
-endGame=function(){if(has('money')&&score<=0){score=aug.peak;timeLeft=0;}baseEnd();if(!playing)stopBombChain();};
+endGame=function(){if(has('money')&&score<=0){score=aug.peak;timeLeft=0;}baseEnd();if(!playing){stopBombChain();resetAutoAugment();cancelHarvestMotion();augDialog.close();renderAug();}};
 // Additional destruction is resolved once per successful player selection.
 // Sets prevent double scoring, while bomb queues are bounded by board size.
 // Additional destruction is resolved once per successful player selection.
@@ -3241,15 +3264,15 @@ function markSpecial(){apples.forEach(syncAppleTraits);}
 function shuffled(items){const list=[...items];for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[list[i],list[j]]=[list[j],list[i]];}return list;}
 function adjacent(a){const r=+a.dataset.row,c=+a.dataset.col;return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([y,x])=>y>=0&&y<ROWS&&x>=0&&x<COLS).map(([y,x])=>apples[y*COLS+x]);}
 function resolveAugmentHarvest(original,automatic=false){
- const selected=new Set(original),events=new Set();const first=original[0],r=+first.dataset.row,c=+first.dataset.col,value=+first.dataset.value;
+ const selected=new Set(original),events=new Set(),origins=new Map();const first=original[0],r=+first.dataset.row,c=+first.dataset.col,value=+first.dataset.value;
  aug.progress ||= {};
  if(!automatic)for(const a of AUGMENTS)if(has(a.id)&&a.tier!=='prism')aug.progress[a.id]=(aug.progress[a.id]||0)+1;
  const due=(id,n)=>!automatic&&has(id)&&aug.progress[id]%n===0,level=augmentLevel;
  const remaining=()=>apples.filter(a=>liveApple(a)&&!selected.has(a));
- function add(id,list){let changed=false;for(const a of list)if(liveApple(a)&&!selected.has(a)){selected.add(a);changed=true;}if(changed)events.add(id);}
+ function add(id,list,source=first){let changed=false;for(const a of list)if(liveApple(a)&&!selected.has(a)){selected.add(a);origins.set(a,source);changed=true;}if(changed)events.add(id);}
  const random=(id,n)=>add(id,shuffled(remaining()).slice(0,n));
  const nearest=(id,n,row=r,col=c)=>add(id,remaining().sort((a,b)=>(Math.abs(+a.dataset.row-row)+Math.abs(+a.dataset.col-col))-(Math.abs(+b.dataset.row-row)+Math.abs(+b.dataset.col-col))).slice(0,n));
- const area=(id,row,col,radius)=>add(id,remaining().filter(a=>Math.abs(+a.dataset.row-row)<=radius&&Math.abs(+a.dataset.col-col)<=radius));
+ const area=(id,row,col,radius,source=first)=>add(id,remaining().filter(a=>Math.abs(+a.dataset.row-row)<=radius&&Math.abs(+a.dataset.col-col)<=radius),source);
  if(!automatic){
  if(has('chain'))add('chain',original.flatMap(adjacent));
  if(has('scatter'))random('scatter',level('scatter'));
@@ -3275,14 +3298,14 @@ function resolveAugmentHarvest(original,automatic=false){
  if(has('domino'))random('domino',3*level('domino'));
  }
  const detonated=new Set();
- function detonate(){for(const a of selected)if(a.dataset.bomb&&!detonated.has(a)){detonated.add(a);area('bombs',+a.dataset.row,+a.dataset.col,Math.max(Number(a.dataset.bomb),level('bombs')));events.add('bombs');}}
+ function detonate(){for(const a of selected)if(a.dataset.bomb&&!detonated.has(a)){detonated.add(a);area('bombs',+a.dataset.row,+a.dataset.col,Math.max(Number(a.dataset.bomb),level('bombs')),a);events.add('bombs');}}
  detonate();
  if(has('domino')){const extras=[...selected].filter(a=>!original.includes(a));add('domino',extras.flatMap(adjacent));detonate();}
  let bonus=0,freezeSeconds=0;
  for(const a of selected){bonus+=Number(a.dataset.goldBonus)||0;if(a.dataset.frost){freezeSeconds+=Number(a.dataset.frost);events.add('timeCrystal');}}
  if(due('icePulse',5)){freezeSeconds+=2*level('icePulse');events.add('icePulse');}
  if(due('glacier',8)){freezeSeconds+=6*level('glacier');events.add('glacier');}
- return {selected:[...selected],bonus,freezeSeconds,events,due,automatic,bombCount:detonated.size,scoreFactor:due('supernova',12)?level('supernova'):1};
+ return {selected:[...selected],origins,bonus,freezeSeconds,events,due,automatic,bombCount:detonated.size,scoreFactor:due('supernova',12)?level('supernova'):1};
 }
 function freezeFor(seconds){if(!seconds)return;const now=Date.now();freezeEnd=Math.max(now,freezeActive?freezeEnd:now)+seconds*1000;freezeActive=true;document.body.classList.add('freeze');}
 function plantTrait(key,value,count){
@@ -3334,14 +3357,34 @@ function showAugmentBurst(original,selected,events){
  if(names.length){const toast=document.createElement('div');toast.className='augmentToast '+tier;toast.textContent=names.slice(0,2).join(' + ')+(names.length>2?' 외 '+(names.length-2)+'개':'')+(extra.length?' · 추가 '+extra.length+'개!':'');layer.append(toast);toast.animate([{opacity:0,transform:'translate(-50%,6px)'},{opacity:1,transform:'translate(-50%,0)',offset:.15},{opacity:1,offset:.8},{opacity:0}],{duration:1300}).finished.then(()=>toast.remove()).catch(()=>{});}
  aug.lastEffects={names,extra:extra.length};
 }
-function augSuccess(input,{automatic=false}={}){
- const original=[...new Set(input)].filter(liveApple);if(!original.length||!playing||refilling)return;
+let harvestBusy=false,harvestEpoch=0;
+const harvestAnimations=new Set();
+function cancelHarvestMotion(){harvestEpoch++;harvestBusy=false;for(const a of harvestAnimations)a.cancel();harvestAnimations.clear();document.querySelectorAll('.harvestFlight').forEach(a=>a.remove());}
+window.addEventListener('pointerdown',e=>{if(harvestBusy&&e.target.closest('#game')){e.preventDefault();e.stopImmediatePropagation();}},true);
+async function animateAugmentHarvest(original,effect){
+ const epoch=harvestEpoch;harvestBusy=true;
+ const wrap=document.getElementById('gameWrapper'),bounds=wrap.getBoundingClientRect(),arrivals=new Map(original.map(a=>[a,0]));
+ const tasks=effect.selected.map((apple,i)=>{
+  const source=effect.origins.get(apple)||original[0],origin=source.getBoundingClientRect(),ox=origin.left+origin.width/2,oy=origin.top+origin.height/2;
+  const rect=apple.getBoundingClientRect(),dx=rect.left+rect.width/2-ox,dy=rect.top+rect.height/2-oy;
+  const extra=!original.includes(apple),distance=Math.hypot(dx,dy)/Math.max(1,rect.width);
+  const delay=extra?Math.min(800,(arrivals.get(source)||0)+120+distance*30):0;arrivals.set(apple,delay);
+  if(apple.dataset.bomb){const ring=document.createElement("span");ring.className="harvestFlight";ring.style.cssText="position:absolute;pointer-events:none;z-index:9;border:3px solid #ffae39;border-radius:50%;left:"+(rect.left-bounds.left)+"px;top:"+(rect.top-bounds.top)+"px;width:"+rect.width+"px;height:"+rect.height+"px";wrap.append(ring);const pulse=ring.animate([{transform:"scale(.4)",opacity:0},{transform:"scale(1)",opacity:1,offset:.15},{transform:"scale(3)",opacity:0}],{delay,duration:350});harvestAnimations.add(pulse);pulse.finished.catch(()=>{}).finally(()=>{harvestAnimations.delete(pulse);ring.remove();});}
+  if(extra){const spark=document.createElement('span');spark.className='harvestFlight';spark.textContent=effect.bombCount?'✹':'✦';spark.style.cssText='position:absolute;pointer-events:none;z-index:9;color:#ffb629;font-size:22px;left:'+(ox-bounds.left-11)+'px;top:'+(oy-bounds.top-11)+'px';wrap.append(spark);const flight=spark.animate([{transform:'translate(0,0) scale(.4)',opacity:1},{transform:'translate('+dx+'px,'+dy+'px) scale(1.2)',opacity:1}],{duration:delay});harvestAnimations.add(flight);flight.finished.catch(()=>{}).finally(()=>{harvestAnimations.delete(flight);spark.remove();});}
+  const motion=apple.animate([{transform:'scale(1)',opacity:1,filter:'brightness(1)'},{transform:'scale(1.2)',opacity:1,filter:'brightness(1.8)',offset:.35},{transform:'scale(.15)',opacity:0,filter:'brightness(1.2)'}],{delay,duration:220,fill:'forwards'});
+  harvestAnimations.add(motion);
+  return motion.finished.then(()=>{if(epoch===harvestEpoch&&playing){apple.classList.remove('selected','held','hint');apple.classList.add('removed');clearAppleTraits(apple);}}).catch(()=>{}).finally(()=>{harvestAnimations.delete(motion);motion.cancel();});
+ });
+ await Promise.all(tasks);if(epoch!==harvestEpoch||!playing)return false;harvestBusy=false;return true;
+}
+async function augSuccess(input,{automatic=false}={}){
+ const original=[...new Set(input)].filter(liveApple);if(!original.length||!playing||refilling||harvestBusy)return;
  const now=Date.now();if(!automatic){combo=lastSuccessTime&&now-lastSuccessTime<=getComboLimit()?combo+1:1;lastSuccessTime=now;comboText.textContent=combo;}
- const effect=resolveAugmentHarvest(original,automatic),selected=effect.selected;
+ const effect=resolveAugmentHarvest(original,automatic),selected=effect.selected,harvestMultiplier=getMultiplier();
  // Capture effects at original positions, before gravity/rain reuses cells.
+ if(!await animateAugmentHarvest(original,effect))return;
  showAugmentBurst(original,selected,effect.events);
- for(const a of selected){a.classList.remove('selected','held','hint');a.classList.add('removed');clearAppleTraits(a);}
- const earned=(selected.length+effect.bonus)*getMultiplier()*effect.scoreFactor;score+=earned;recordHarvest(selected.length,automatic);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);if(!automatic)aug.success++;aug.removed+=selected.length;
+ const earned=(selected.length+effect.bonus)*harvestMultiplier*effect.scoreFactor;score+=earned;recordHarvest(selected.length,automatic);aug.peak=Math.max(aug.peak,score);scoreText.textContent=formatScore(score);if(!automatic)aug.success++;aug.removed+=selected.length;
  if(!automatic&&has('train'))timeLeft++;
  if(!automatic&&combo%10===0)activateComboBoost();
  const gifts=[];while(score>=nextTimeBonus){nextTimeBonus+=100;if(!has('money'))timeLeft+=20;gifts.push(giveReward());}
@@ -3398,6 +3441,7 @@ setInterval(()=>{const now=Date.now(),delta=now-aug.lastTick;aug.lastTick=now;if
  if(has('glacier')&&freezeActive&&lastSuccessTime)lastSuccessTime+=delta;
 },20);
 bestScore=readBestScore();startGame();updateRecord();
+
 
 
 // Session-only results; saved high scores and inventory keep their existing keys.
