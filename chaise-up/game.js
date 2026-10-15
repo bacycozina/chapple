@@ -14,10 +14,11 @@ function sensor(body,value){body.parts.forEach(p=>p.isSensor=value);}
 function pick(){if(!bag.length){bag=[0,1,2,3,4,5,6];for(let i=6;i>0;i--){let j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}}return bag.pop();}
 function physicalOptions(){return {friction:.72,frictionStatic:1,restitution:.06,frictionAir:.025,density:.002,sleepThreshold:100};}
 function makeBlock(type,x,y){const squares=SHAPES[type].map(([cx,cy])=>Bodies.rectangle(cx*CELL,cy*CELL,CELL,CELL,physicalOptions()));const b=Body.create({...physicalOptions(),parts:squares});Body.setPosition(b,{x,y});b.plugin={color:COLORS[type],type,released:false};return b;}
+function controlHint(){return matchMedia('(pointer:coarse)').matches?'중심은 이동 · 바깥은 회전':'드래그로 이동 · 휠로 회전';}
 function spawn(){
  active=makeBlock(nextType,W/2,76);nextType=pick();active.plugin.released=true;blocks.push(active);Composite.add(engine.world,active);settleTime=dropAge=0;$('#angle').textContent='0°';
  if(Query.collides(active,blocks.filter(b=>b!==active)).some(c=>c.depth>2)){finish();return;}
- $('#hint').textContent='중앙 ↔ 이동 · 양끝 ↻ 회전';drawNext();
+ $('#hint').textContent=controlHint();drawNext();
 }
 function reset(){
  releaseGrip();
@@ -28,12 +29,7 @@ function reset(){
 }
 function drawNext(){nc.clearRect(0,0,160,110);const shape=SHAPES[nextType],size=22,maxX=Math.max(...shape.map(c=>c[0])),maxY=Math.max(...shape.map(c=>c[1]));for(const [x,y]of shape){nc.fillStyle=COLORS[nextType];nc.beginPath();nc.roundRect((160-(maxX+1)*size)/2+x*size,(110-(maxY+1)*size)/2+y*size,size-2,size-2,4);nc.fill();}}
 function point(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};}
-function gripZones(body=active){
- const cos=Math.cos(body.angle),sin=Math.sin(body.angle),local=p=>({x:(p.x-body.position.x)*cos+(p.y-body.position.y)*sin,y:-(p.x-body.position.x)*sin+(p.y-body.position.y)*cos});
- const vertices=parts(body).flatMap(p=>p.vertices.map(local)),left=Math.min(...vertices.map(p=>p.x))*.5,right=Math.max(...vertices.map(p=>p.x))*.5;
- return {local,left,right};
-}
-function gripMode(point,body=active){const z=gripZones(body),x=z.local(point).x;return x>=z.left&&x<=z.right?'move':'rotate';}
+function gripMode(point,body=active){return Math.hypot(point.x-body.position.x,point.y-body.position.y)<=CELL*.8?"move":"rotate";}
 function releaseGrip(){
  if(!drag)return;const id=drag.id;drag=null;if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
 }
@@ -41,9 +37,9 @@ canvas.addEventListener('pointerdown',e=>{
  if(paused||over||cut||!active||active.plugin.controlLocked||drag||e.button!==0)return;const p=point(e),center=active.position;
  const atCenter=Math.hypot(p.x-center.x,p.y-center.y)<12;if(!atCenter&&!Query.point([active],p).length)return;
  e.preventDefault();canvas.setPointerCapture(e.pointerId);Sleeping.set(active,false);
- const mode=gripMode(p);if(mode==='rotate')Body.setVelocity(active,{x:0,y:active.velocity.y});
+ const mode=e.pointerType==='mouse'?'move':gripMode(p);if(mode==='rotate')Body.setVelocity(active,{x:0,y:active.velocity.y});
  drag={id:e.pointerId,mode,target:{...p},last:{...p},dx:p.x-center.x,pendingSpin:0};settleTime=dropAge=0;
- $('#hint').textContent=mode==='move'?'↔ 중앙 · 좌우 이동만':'↻ 양끝 · 회전만';
+ $('#hint').textContent='블록은 계속 떨어져요';
 });
 function lockControl(){
  if(!active||active.plugin.controlLocked)return;
@@ -51,26 +47,37 @@ function lockControl(){
  Body.setVelocity(active,{x:active.velocity.x,y:Math.max(active.velocity.y,3)});
  $('#hint').textContent='툭! · 1.5초 동안 멈추면 다음 블록';
 }
-function followPointer(p){
+function followPointer(p,wheelTurn=null){
  const held=drag,body=active;if(!held||!body||body.plugin.controlLocked)return;
  const fromX=body.position.x,fromAngle=body.angle;
  let toX=fromX,turn=0;
- if(held.mode==='move')toX=Math.max(fromX-body.bounds.min.x,Math.min(W-(body.bounds.max.x-fromX),p.x-held.dx));
+ if(wheelTurn!==null)turn=wheelTurn;
+ else if(held.mode==='move')toX=Math.max(fromX-body.bounds.min.x,Math.min(W-(body.bounds.max.x-fromX),p.x-held.dx));
  else{const x1=held.last.x-body.position.x,y1=held.last.y-body.position.y,x2=p.x-body.position.x,y2=p.y-body.position.y;turn=Math.atan2(x1*y2-y1*x2,x1*x2+y1*y2);}
  const steps=Math.max(1,Math.ceil(Math.max(Math.abs(toX-fromX)/2,Math.abs(turn)/.02)));
  // Sweep directly to the pointer, stopping at the first solid contact.
  for(let i=1;i<=steps;i++){
   const oldX=body.position.x,oldAngle=body.angle;
-  if(held.mode==='move')Body.setPosition(body,{x:fromX+(toX-fromX)*i/steps,y:body.position.y});
+  if(wheelTurn===null&&held.mode==='move')Body.setPosition(body,{x:fromX+(toX-fromX)*i/steps,y:body.position.y});
   else Body.setAngle(body,fromAngle+turn*i/steps);
   if(body.bounds.min.x<-.01||body.bounds.max.x>W+.01){Body.setAngle(body,oldAngle);Body.setPosition(body,{x:oldX,y:body.position.y});break;}
   if(Query.collides(body,[floorBody,...blocks.filter(b=>b!==body)]).length){Body.setAngle(body,oldAngle);Body.setPosition(body,{x:oldX,y:body.position.y});lockControl();break;}
  }
  Body.setVelocity(body,{x:0,y:body.velocity.y});Body.setAngularVelocity(body,0);
- if(drag){held.last={...p};held.target={...p};}
+ if(drag&&wheelTurn===null){held.last={...p};held.target={...p};}
 }
+canvas.addEventListener('wheel',e=>{
+ if(paused||over||cut||!active||active.plugin.controlLocked||(drag&&drag.mode==='rotate'))return;
+ e.preventDefault();if(!e.deltaY)return;
+ const existing=drag,p=point(e);
+ if(!drag)drag={id:-1,mode:'rotate',last:p,target:p,dx:0};
+ const delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?H:1);
+ followPointer(p,Math.max(-Math.PI/6,Math.min(Math.PI/6,delta*.003)));
+ if(!existing&&drag)drag=null;
+ settleTime=0;
+},{passive:false});
 canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||paused)return;followPointer(point(e));});
-function release(e){if(!drag||drag.id!==e.pointerId)return;releaseGrip();$('#hint').textContent='낙하는 계속 · 중앙 ↔ 이동 · 양끝 ↻ 회전';}
+function release(e){if(!drag||drag.id!==e.pointerId)return;releaseGrip();$('#hint').textContent=controlHint();}
 canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
 function pauseGame(value){if(over)return;releaseGrip();paused=value;$('#overlay').hidden=!value;$('#overlayLabel').textContent='TAKE A BREATH';$('#overlayTitle').textContent='잠깐 쉬어가기';$('#overlayText').textContent='준비되면 이어서 쌓아보세요.';$('#resume').hidden=false;$('#pause').textContent=value?'▷':'Ⅱ';$('#pause').setAttribute('aria-label',value?'계속하기':'일시정지');}
 function finish(){releaseGrip();over=true;paused=false;saveBest();$('#overlay').hidden=false;$('#overlayLabel').textContent='NICELY STACKED';$('#overlayTitle').textContent='여기까지, 잘 쌓았어요';$('#overlayText').textContent=lines+'줄을 지웠어요 · '+score.toLocaleString()+'점';$('#resume').hidden=true;}
@@ -129,11 +136,7 @@ function draw(){
  // Soft grain gives depth without suggesting a placement grid.
  ctx.fillStyle='#ffffff05';for(let i=0;i<85;i++)ctx.fillRect((i*137.7)%W,(i*73.3)%H,1,1);
  for(const b of blocks){const invalid=false;for(const part of parts(b)){path(part.vertices);ctx.fillStyle=b.plugin.color;ctx.fill();ctx.strokeStyle=invalid?'#fa5c61':'#152f3433';ctx.lineWidth=invalid?2.5:1;ctx.stroke();ctx.save();ctx.clip();ctx.strokeStyle='#ffffff30';ctx.lineWidth=3;ctx.translate(0,1);path(part.vertices);ctx.stroke();ctx.restore();}}
- if(active&&!active.plugin.controlLocked&&!over&&!cut){const p=active.position;
- const z=gripZones();
- for(const part of parts(active)){ctx.save();path(part.vertices);ctx.clip();ctx.translate(p.x,p.y);ctx.rotate(active.angle);ctx.fillStyle='#ffe4a8dd';ctx.fillRect(-160,-160,320,320);ctx.fillStyle='#a9e4ecdd';ctx.fillRect(z.left,-160,z.right-z.left,320);ctx.strokeStyle='#ffffffaa';ctx.lineWidth=1;for(const x of [z.left,z.right]){ctx.beginPath();ctx.moveTo(x,-160);ctx.lineTo(x,160);ctx.stroke();}ctx.restore();}
- ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#233f40';ctx.fillText('↔',p.x,p.y);
- const cells=parts(active).slice().sort((a,b)=>z.local(a.position).x-z.local(b.position).x);for(const cell of [cells[0],cells[cells.length-1]]){ctx.fillStyle='#4d431d';ctx.fillText('↻',cell.position.x,cell.position.y);}
+ if(active&&!active.plugin.controlLocked&&!over&&!cut){
  $('#angle').textContent=((Math.round(active.angle*180/Math.PI)%360+360)%360)+'°';
  }
  if(cut){for(const b of cut){ctx.fillStyle='rgba(250,246,204,'+(.3+Math.sin(cutClock*28)*.2)+')';ctx.fillRect(0,b.top,W,b.bottom-b.top);ctx.fillStyle='#fff9dc';ctx.fillRect(0,b.top,W,1);ctx.fillRect(0,b.bottom,W,1);}}
