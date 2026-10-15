@@ -45,12 +45,31 @@ canvas.addEventListener('pointerdown',e=>{
  drag={id:e.pointerId,mode,target:{...p},last:{...p},dx:p.x-center.x,pendingSpin:0};settleTime=dropAge=0;
  $('#hint').textContent=mode==='move'?'↔ 중앙 · 좌우 이동만':'↻ 양끝 · 회전만';
 });
-canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||paused)return;const p=point(e),dx=p.x-drag.last.x,dy=p.y-drag.last.y;
- if(drag.mode==='rotate'){
- const x1=drag.last.x-active.position.x,y1=drag.last.y-active.position.y,x2=p.x-active.position.x,y2=p.y-active.position.y;
- const turn=Math.atan2(x1*y2-y1*x2,x1*x2+y1*y2);drag.pendingSpin=Math.max(-.14,Math.min(.14,drag.pendingSpin+turn));
+function lockControl(){
+ if(!active||active.plugin.controlLocked)return;
+ active.plugin.controlLocked=true;releaseGrip();settleTime=0;
+ Body.setVelocity(active,{x:active.velocity.x,y:Math.max(active.velocity.y,3)});
+ $('#hint').textContent='툭! · 1.5초 동안 멈추면 다음 블록';
+}
+function followPointer(p){
+ const held=drag,body=active;if(!held||!body||body.plugin.controlLocked)return;
+ const fromX=body.position.x,fromAngle=body.angle;
+ let toX=fromX,turn=0;
+ if(held.mode==='move')toX=Math.max(fromX-body.bounds.min.x,Math.min(W-(body.bounds.max.x-fromX),p.x-held.dx));
+ else{const x1=held.last.x-body.position.x,y1=held.last.y-body.position.y,x2=p.x-body.position.x,y2=p.y-body.position.y;turn=Math.atan2(x1*y2-y1*x2,x1*x2+y1*y2);}
+ const steps=Math.max(1,Math.ceil(Math.max(Math.abs(toX-fromX)/2,Math.abs(turn)/.02)));
+ // Sweep directly to the pointer, stopping at the first solid contact.
+ for(let i=1;i<=steps;i++){
+  const oldX=body.position.x,oldAngle=body.angle;
+  if(held.mode==='move')Body.setPosition(body,{x:fromX+(toX-fromX)*i/steps,y:body.position.y});
+  else Body.setAngle(body,fromAngle+turn*i/steps);
+  if(body.bounds.min.x<-.01||body.bounds.max.x>W+.01){Body.setAngle(body,oldAngle);Body.setPosition(body,{x:oldX,y:body.position.y});break;}
+  if(Query.collides(body,[floorBody,...blocks.filter(b=>b!==body)]).length){Body.setAngle(body,oldAngle);Body.setPosition(body,{x:oldX,y:body.position.y});lockControl();break;}
  }
- drag.last=p;drag.target={x:Math.max(2,Math.min(W-2,p.x)),y:p.y};});
+ Body.setVelocity(body,{x:0,y:body.velocity.y});Body.setAngularVelocity(body,0);
+ if(drag){held.last={...p};held.target={...p};}
+}
+canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||paused)return;followPointer(point(e));});
 function release(e){if(!drag||drag.id!==e.pointerId)return;releaseGrip();$('#hint').textContent='낙하는 계속 · 중앙 ↔ 이동 · 양끝 ↻ 회전';}
 canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
 function pauseGame(value){if(over)return;releaseGrip();paused=value;$('#overlay').hidden=!value;$('#overlayLabel').textContent='TAKE A BREATH';$('#overlayTitle').textContent='잠깐 쉬어가기';$('#overlayText').textContent='준비되면 이어서 쌓아보세요.';$('#resume').hidden=false;$('#pause').textContent=value?'▷':'Ⅱ';$('#pause').setAttribute('aria-label',value?'계속하기':'일시정지');}
@@ -78,12 +97,7 @@ function toast(text){$('#toast').textContent=text;$('#toast').classList.add('sho
 function step(dt){
  if(paused||over)return;
  if(cut){cutClock+=dt;if(cutClock>=.36){const bands=cut;cut=null;applyCut(bands);}return;}
- if(drag){Sleeping.set(active,false);
- // Steering never applies vertical force or rewrites downward velocity.
- if(drag.mode==='move'){const error=drag.target.x-drag.dx-active.position.x;
- const force=Math.max(-.002,Math.min(.002,error*.00003-active.velocity.x*.00015));Body.applyForce(active,active.position,{x:active.mass*force,y:0});}
- Body.setAngularVelocity(active,drag.mode==='rotate'?drag.pendingSpin:0);drag.pendingSpin=0;
- }
+ if(drag){Sleeping.set(active,false);Body.setVelocity(active,{x:0,y:active.velocity.y});Body.setAngularVelocity(active,0);}
  // Only the controllable block falls slowly. Landed blocks and cut fragments
  // retain the original gravity, including after their support disappears.
  for(const body of blocks){if(body!==active||body.plugin.controlLocked){Body.applyForce(body,body.position,{x:0,y:body.mass*(.00075-engine.gravity.scale)});}}
@@ -97,9 +111,7 @@ function step(dt){
   if(fallingBody.velocity.y<0)Body.setVelocity(fallingBody,{x:fallingBody.velocity.x,y:0});
  }
  if(active&&!active.plugin.controlLocked&&Query.collides(active,[floorBody,...blocks.filter(b=>b!==active)]).length){
-  active.plugin.controlLocked=true;releaseGrip();settleTime=0;
-  Body.setVelocity(active,{x:active.velocity.x,y:Math.max(active.velocity.y,3)});
-  $('#hint').textContent='툭! · 1.5초 동안 멈추면 다음 블록';
+  lockControl();
  }
  for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;}particles=particles.filter(p=>p.life>0);
  scanClock+=dt;if(scanClock>.2&&!drag){scanClock=0;const bands=findBands();if(bands.length){cut=bands;cutClock=0;return;}}
