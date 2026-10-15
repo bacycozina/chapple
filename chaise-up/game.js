@@ -17,7 +17,7 @@ function makeBlock(type,x,y){const squares=SHAPES[type].map(([cx,cy])=>Bodies.re
 function spawn(){
  active=makeBlock(nextType,W/2,76);nextType=pick();active.plugin.released=true;blocks.push(active);Composite.add(engine.world,active);settleTime=dropAge=0;$('#angle').textContent='0°';
  if(Query.collides(active,blocks.filter(b=>b!==active)).some(c=>c.depth>2)){finish();return;}
- $('#hint').textContent='어디든 잡고 끌어서 이동·회전';drawNext();
+ $('#hint').textContent='중앙 ↔ 이동 · 양끝 ↻ 회전';drawNext();
 }
 function reset(){
  releaseGrip();
@@ -28,6 +28,12 @@ function reset(){
 }
 function drawNext(){nc.clearRect(0,0,160,110);const shape=SHAPES[nextType],size=22,maxX=Math.max(...shape.map(c=>c[0])),maxY=Math.max(...shape.map(c=>c[1]));for(const [x,y]of shape){nc.fillStyle=COLORS[nextType];nc.beginPath();nc.roundRect((160-(maxX+1)*size)/2+x*size,(110-(maxY+1)*size)/2+y*size,size-2,size-2,4);nc.fill();}}
 function point(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};}
+function gripZones(body=active){
+ const cos=Math.cos(body.angle),sin=Math.sin(body.angle),local=p=>({x:(p.x-body.position.x)*cos+(p.y-body.position.y)*sin,y:-(p.x-body.position.x)*sin+(p.y-body.position.y)*cos});
+ const vertices=parts(body).flatMap(p=>p.vertices.map(local)),left=Math.min(...vertices.map(p=>p.x))*.5,right=Math.max(...vertices.map(p=>p.x))*.5;
+ return {local,left,right};
+}
+function gripMode(point,body=active){const z=gripZones(body),x=z.local(point).x;return x>=z.left&&x<=z.right?'move':'rotate';}
 function releaseGrip(){
  if(!drag)return;const id=drag.id;drag=null;if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);
 }
@@ -35,13 +41,17 @@ canvas.addEventListener('pointerdown',e=>{
  if(paused||over||cut||!active||active.plugin.controlLocked||drag||e.button!==0)return;const p=point(e),center=active.position;
  const atCenter=Math.hypot(p.x-center.x,p.y-center.y)<12;if(!atCenter&&!Query.point([active],p).length)return;
  e.preventDefault();canvas.setPointerCapture(e.pointerId);Sleeping.set(active,false);
- drag={id:e.pointerId,target:{...p},last:{...p},dx:p.x-center.x,pendingSpin:0};settleTime=dropAge=0;
- $('#hint').textContent='움직이면 이동·회전 · 멈추면 회전 정지';
+ const mode=gripMode(p);if(mode==='rotate')Body.setVelocity(active,{x:0,y:active.velocity.y});
+ drag={id:e.pointerId,mode,target:{...p},last:{...p},dx:p.x-center.x,pendingSpin:0};settleTime=dropAge=0;
+ $('#hint').textContent=mode==='move'?'↔ 중앙 · 좌우 이동만':'↻ 양끝 · 회전만';
 });
 canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||paused)return;const p=point(e),dx=p.x-drag.last.x,dy=p.y-drag.last.y;
- drag.pendingSpin=Math.max(-.14,Math.min(.14,drag.pendingSpin+(dx+dy)*.015));
+ if(drag.mode==='rotate'){
+ const x1=drag.last.x-active.position.x,y1=drag.last.y-active.position.y,x2=p.x-active.position.x,y2=p.y-active.position.y;
+ const turn=Math.atan2(x1*y2-y1*x2,x1*x2+y1*y2);drag.pendingSpin=Math.max(-.14,Math.min(.14,drag.pendingSpin+turn));
+ }
  drag.last=p;drag.target={x:Math.max(2,Math.min(W-2,p.x)),y:p.y};});
-function release(e){if(!drag||drag.id!==e.pointerId)return;releaseGrip();$('#hint').textContent='낙하는 계속 · 어디든 잡고 이동·회전';}
+function release(e){if(!drag||drag.id!==e.pointerId)return;releaseGrip();$('#hint').textContent='낙하는 계속 · 중앙 ↔ 이동 · 양끝 ↻ 회전';}
 canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
 function pauseGame(value){if(over)return;releaseGrip();paused=value;$('#overlay').hidden=!value;$('#overlayLabel').textContent='TAKE A BREATH';$('#overlayTitle').textContent='잠깐 쉬어가기';$('#overlayText').textContent='준비되면 이어서 쌓아보세요.';$('#resume').hidden=false;$('#pause').textContent=value?'▷':'Ⅱ';$('#pause').setAttribute('aria-label',value?'계속하기':'일시정지');}
 function finish(){releaseGrip();over=true;paused=false;saveBest();$('#overlay').hidden=false;$('#overlayLabel').textContent='NICELY STACKED';$('#overlayTitle').textContent='여기까지, 잘 쌓았어요';$('#overlayText').textContent=lines+'줄을 지웠어요 · '+score.toLocaleString()+'점';$('#resume').hidden=true;}
@@ -70,9 +80,9 @@ function step(dt){
  if(cut){cutClock+=dt;if(cutClock>=.36){const bands=cut;cut=null;applyCut(bands);}return;}
  if(drag){Sleeping.set(active,false);
  // Steering never applies vertical force or rewrites downward velocity.
- const error=drag.target.x-drag.dx-active.position.x;
- const force=Math.max(-.002,Math.min(.002,error*.00003-active.velocity.x*.00015));Body.applyForce(active,active.position,{x:active.mass*force,y:0});
- Body.setAngularVelocity(active,drag.pendingSpin);drag.pendingSpin=0;
+ if(drag.mode==='move'){const error=drag.target.x-drag.dx-active.position.x;
+ const force=Math.max(-.002,Math.min(.002,error*.00003-active.velocity.x*.00015));Body.applyForce(active,active.position,{x:active.mass*force,y:0});}
+ Body.setAngularVelocity(active,drag.mode==='rotate'?drag.pendingSpin:0);drag.pendingSpin=0;
  }
  // Only the controllable block falls slowly. Landed blocks and cut fragments
  // retain the original gravity, including after their support disappears.
@@ -100,8 +110,10 @@ function draw(){
  ctx.fillStyle='#ffffff05';for(let i=0;i<85;i++)ctx.fillRect((i*137.7)%W,(i*73.3)%H,1,1);
  for(const b of blocks){const invalid=false;for(const part of parts(b)){path(part.vertices);ctx.fillStyle=b.plugin.color;ctx.fill();ctx.strokeStyle=invalid?'#fa5c61':'#152f3433';ctx.lineWidth=invalid?2.5:1;ctx.stroke();ctx.save();ctx.clip();ctx.strokeStyle='#ffffff30';ctx.lineWidth=3;ctx.translate(0,1);path(part.vertices);ctx.stroke();ctx.restore();}}
  if(active&&!active.plugin.controlLocked&&!over&&!cut){const p=active.position;
- ctx.strokeStyle='#ffffffcc';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(p.x,p.y,8,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fffbe8';ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();
- if(drag){const anchor={x:p.x,y:p.y};ctx.strokeStyle='#fffbe8aa';ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(anchor.x,anchor.y);ctx.lineTo(drag.target.x,drag.target.y);ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(anchor.x,anchor.y,4,0,Math.PI*2);ctx.stroke();}
+ const z=gripZones();
+ for(const part of parts(active)){ctx.save();path(part.vertices);ctx.clip();ctx.translate(p.x,p.y);ctx.rotate(active.angle);ctx.fillStyle='#ffe4a8dd';ctx.fillRect(-160,-160,320,320);ctx.fillStyle='#a9e4ecdd';ctx.fillRect(z.left,-160,z.right-z.left,320);ctx.strokeStyle='#ffffffaa';ctx.lineWidth=1;for(const x of [z.left,z.right]){ctx.beginPath();ctx.moveTo(x,-160);ctx.lineTo(x,160);ctx.stroke();}ctx.restore();}
+ ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#233f40';ctx.fillText('↔',p.x,p.y);
+ const cells=parts(active).slice().sort((a,b)=>z.local(a.position).x-z.local(b.position).x);for(const cell of [cells[0],cells[cells.length-1]]){ctx.fillStyle='#4d431d';ctx.fillText('↻',cell.position.x,cell.position.y);}
  $('#angle').textContent=((Math.round(active.angle*180/Math.PI)%360+360)%360)+'°';
  }
  if(cut){for(const b of cut){ctx.fillStyle='rgba(250,246,204,'+(.3+Math.sin(cutClock*28)*.2)+')';ctx.fillRect(0,b.top,W,b.bottom-b.top);ctx.fillStyle='#fff9dc';ctx.fillRect(0,b.top,W,1);ctx.fillRect(0,b.bottom,W,1);}}
