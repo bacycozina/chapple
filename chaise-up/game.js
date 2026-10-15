@@ -23,7 +23,7 @@ function reset(){
  releaseGrip();
  engine=Engine.create({positionIterations:10,velocityIterations:8,enableSleeping:false});engine.gravity.y=1;engine.gravity.scale=.000075;
  floorBody=Bodies.rectangle(W/2,H+20,W+80,40,{isStatic:true});
- Composite.add(engine.world,[Bodies.rectangle(-20,H/2,40,H*3,{isStatic:true}),Bodies.rectangle(W+20,H/2,40,H*3,{isStatic:true}),floorBody]);
+ Composite.add(engine.world,[Bodies.rectangle(-20,H/2,40,H*3,{isStatic:true,friction:0,frictionStatic:0}),Bodies.rectangle(W+20,H/2,40,H*3,{isStatic:true,friction:0,frictionStatic:0}),floorBody]);
  blocks=[];active=null;bag=[];score=lines=0;paused=over=false;drag=cut=null;settleTime=dropAge=scanClock=dangerClock=0;particles=[];accumulator=0;clearTimeout(toastTimer);$('#toast').classList.remove('show');$('#overlay').hidden=true;$('#pause').textContent='Ⅱ';$('#pause').setAttribute('aria-label','일시정지');nextType=pick();spawn();hud();
 }
 function drawNext(){nc.clearRect(0,0,160,110);const shape=SHAPES[nextType],size=22,maxX=Math.max(...shape.map(c=>c[0])),maxY=Math.max(...shape.map(c=>c[1]));for(const [x,y]of shape){nc.fillStyle=COLORS[nextType];nc.beginPath();nc.roundRect((160-(maxX+1)*size)/2+x*size,(110-(maxY+1)*size)/2+y*size,size-2,size-2,4);nc.fill();}}
@@ -87,7 +87,15 @@ function step(dt){
  // Only the controllable block falls slowly. Landed blocks and cut fragments
  // retain the original gravity, including after their support disappears.
  for(const body of blocks){if(body!==active||body.plugin.controlLocked){Body.applyForce(body,body.position,{x:0,y:body.mass*(.00075-engine.gravity.scale)});}}
+ const fallingBody=active&&!active.plugin.controlLocked?active:null;
+ const previousHeight=fallingBody?.position.y;
  Engine.update(engine,dt*1000);
+ // Wall contacts may redirect rotation into an upward collision impulse.
+ // Keep the controlled body's center descending without freezing the pile.
+ if(fallingBody){
+  if(fallingBody.position.y<previousHeight)Body.translate(fallingBody,{x:0,y:previousHeight-fallingBody.position.y});
+  if(fallingBody.velocity.y<0)Body.setVelocity(fallingBody,{x:fallingBody.velocity.x,y:0});
+ }
  if(active&&!active.plugin.controlLocked&&Query.collides(active,[floorBody,...blocks.filter(b=>b!==active)]).length){
   active.plugin.controlLocked=true;releaseGrip();settleTime=0;
   Body.setVelocity(active,{x:active.velocity.x,y:Math.max(active.velocity.y,3)});
