@@ -58,7 +58,9 @@ canvas.addEventListener('pointerdown',e=>{
 function lockControl(){
  if(!active||active.plugin.controlLocked)return;
  active.plugin.controlLocked=true;releaseGrip();settleTime=0;
- settleBody(active);
+ // Losing control must not freeze a block in mid-air.
+ active.plugin.fallSpeed=Math.max(180,active.plugin.fallSpeed||0);
+ Body.setVelocity(active,{x:0,y:active.plugin.fallSpeed/60});
  $('#hint').textContent='툭! · 1.5초 동안 멈추면 다음 블록';
 }
 function followPointer(p,wheelTurn=null){
@@ -154,7 +156,8 @@ function advanceBlocks(dt){
     let low=0,high=dy;
     for(let n=0;n<12;n++){const mid=(low+high)/2;Body.setPosition(body,{x:old.x,y:old.y+mid});if(Query.collides(body,[floorBody,...blocks.filter(b=>b!==body)]).length)high=mid;else low=mid;}
     Body.setPosition(body,{x:old.x,y:old.y+low});
-    if(controlled)lockControl();else settleBody(body);
+    if(controlled)lockControl();
+    settleBody(body);
     break;
    }
   }
