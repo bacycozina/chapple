@@ -21,7 +21,7 @@ function saveBest(){if(score>best){best=score;try{localStorage.setItem('free-blo
 function parts(body){return body.parts.length>1?body.parts.slice(1):[body];}
 function sensor(body,value){body.parts.forEach(p=>p.isSensor=value);}
 function pick(){if(!bag.length){bag=[0,1,2,3,4,5,6];for(let i=6;i>0;i--){let j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}}return bag.pop();}
-function physicalOptions(){return {friction:.72,frictionStatic:1,restitution:.06,frictionAir:.025,density:.002,sleepThreshold:100};}
+function physicalOptions(){return {friction:.72,frictionStatic:1,restitution:0,frictionAir:.025,density:.002,sleepThreshold:30};}
 function makeBlock(type,x,y){const squares=SHAPES[type].map(([cx,cy])=>Bodies.rectangle(cx*CELL,cy*CELL,CELL,CELL,physicalOptions()));const b=Body.create({...physicalOptions(),parts:squares});Body.setPosition(b,{x,y});b.plugin={color:COLORS[type],type,released:false};return b;}
 function controlHint(){return !wheelEnabled||matchMedia('(pointer:coarse)').matches?'중심은 이동 · 바깥은 회전':'드래그로 이동 · 휠로 회전';}
 function spawn(){
@@ -31,7 +31,7 @@ function spawn(){
 }
 function reset(){
  releaseGrip();
- engine=Engine.create({positionIterations:10,velocityIterations:8,enableSleeping:false});engine.gravity.y=1;engine.gravity.scale=.000075;
+ engine=Engine.create({positionIterations:10,velocityIterations:8,enableSleeping:true});engine.gravity.y=1;engine.gravity.scale=.00075;
  floorBody=Bodies.rectangle(W/2,H+20,W+80,40,{isStatic:true});
  Composite.add(engine.world,[Bodies.rectangle(-20,H/2,40,H*3,{isStatic:true,friction:0,frictionStatic:0}),Bodies.rectangle(W+20,H/2,40,H*3,{isStatic:true,friction:0,frictionStatic:0}),floorBody]);
  blocks=[];active=null;bag=[];score=lines=0;paused=over=false;drag=cut=null;settleTime=dropAge=scanClock=dangerClock=0;particles=[];accumulator=0;clearTimeout(toastTimer);$('#toast').classList.remove('show');$('#overlay').hidden=true;$('#pause').textContent='Ⅱ';$('#pause').setAttribute('aria-label','일시정지');nextType=pick();spawn();hud();
@@ -106,7 +106,7 @@ function applyCut(bands){
  for(const band of bands){const next=[];for(const poly of polys){const lo=Math.min(...poly.map(v=>v.y)),hi=Math.max(...poly.map(v=>v.y));if(hi<=band.top||lo>=band.bottom){next.push(poly);continue;}affected=true;for(const p of [clip(poly,band.top,true),clip(poly,band.bottom,false)])if(area(p)>9)next.push(p);}polys=next;}
  if(!affected){remaining.push(b);continue;}Composite.remove(engine.world,b);if(b===active)active=null;
  for(const group of components(polys)){const children=group.map(poly=>{const center=Vertices.centre(poly);return Bodies.fromVertices(center.x,center.y,[poly],physicalOptions(),false,.001,1,.001);}).filter(Boolean);if(!children.length)continue;const body=children.length===1?children[0]:Body.create({...physicalOptions(),parts:children});body.plugin={color:b.plugin.color,type:b.plugin.type,released:true};Body.setVelocity(body,{x:b.velocity.x*.4,y:0});Body.setAngularVelocity(body,b.angularVelocity*.3);Composite.add(engine.world,body);remaining.push(body);}
- }blocks=remaining;lines+=bands.length;const earned=100*bands.length*bands.length;score+=earned;saveBest();toast((bands.length>1?bands.length+'줄 동시! ':'')+'+'+earned.toLocaleString());
+ }blocks=remaining;for(const body of blocks)Sleeping.set(body,false);lines+=bands.length;const earned=100*bands.length*bands.length;score+=earned;saveBest();toast((bands.length>1?bands.length+'줄 동시! ':'')+'+'+earned.toLocaleString());
  for(const band of bands)for(let i=0;i<45;i++)particles.push({x:Math.random()*W,y:band.top+Math.random()*CELL,vx:(Math.random()-.5)*120,vy:(Math.random()-.5)*120,life:.6,color:COLORS[i%7]});
  settleTime=0;scanClock=0;dangerClock=0;
 }
@@ -117,9 +117,14 @@ function step(dt){
  if(drag){Sleeping.set(active,false);Body.setVelocity(active,{x:0,y:active.velocity.y});Body.setAngularVelocity(active,0);}
  // Only the controllable block falls slowly. Landed blocks and cut fragments
  // retain the original gravity, including after their support disappears.
- for(const body of blocks){if(body!==active||body.plugin.controlLocked){Body.applyForce(body,body.position,{x:0,y:body.mass*(.00075-engine.gravity.scale)});}}
  const fallingBody=active&&!active.plugin.controlLocked?active:null;
  const previousHeight=fallingBody?.position.y;
+ // Cancel gravity while controlled and compensate drag for a steady 30 px/s descent.
+ if(fallingBody){
+  Sleeping.set(fallingBody,false);
+  Body.setVelocity(fallingBody,{x:fallingBody.velocity.x,y:(30/60)/(1-fallingBody.frictionAir*dt*60)});
+  Body.applyForce(fallingBody,fallingBody.position,{x:0,y:-fallingBody.mass*engine.gravity.scale});
+ }
  Engine.update(engine,dt*1000);
  // Wall contacts may redirect rotation into an upward collision impulse.
  // Keep the controlled body's center descending without freezing the pile.
