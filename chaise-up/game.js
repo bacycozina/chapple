@@ -7,6 +7,15 @@ const SHAPES=[[[0,0],[1,0],[2,0],[3,0]],[[0,0],[1,0],[0,1],[1,1]],[[0,0],[1,0],[
 const COLORS=['#86c9d3','#eccb74','#ae9ccf','#eaa175','#7fa8d9','#a4c78f','#df8d98'];
 let engine,floorBody,blocks=[],active=null,nextType=0,bag=[],score=0,lines=0,best=0,paused=false,over=false,drag=null,settleTime=0,dropAge=0,cut=null,cutClock=0,scanClock=0,dangerClock=0,particles=[],lastFrame=0,accumulator=0,toastTimer=null;
 try{best=Number(localStorage.getItem('free-block-best'))||0;}catch{}
+let wheelEnabled=true;
+try{wheelEnabled=localStorage.getItem('chaise-up-wheel')!=='off';}catch{}
+function updateControls(){
+ const button=$('#wheelToggle');button.textContent=wheelEnabled?'휠 ON':'휠 OFF';button.setAttribute('aria-checked',String(wheelEnabled));
+ $('#desktopHint').textContent=wheelEnabled?'드래그로 이동 · 휠로 회전':'중심은 이동 · 바깥은 회전';
+ canvas.setAttribute('aria-label','블록 게임판. '+controlHint());
+ if(!active?.plugin.controlLocked)$('#hint').textContent=controlHint();
+}
+$('#wheelToggle').onclick=()=>{releaseGrip();wheelEnabled=!wheelEnabled;try{localStorage.setItem('chaise-up-wheel',wheelEnabled?'on':'off');}catch{}updateControls();};
 function hud(){$('#score').textContent=score.toLocaleString();$('#lines').textContent=lines;$('#best').textContent=best.toLocaleString();}
 function saveBest(){if(score>best){best=score;try{localStorage.setItem('free-block-best',String(best));}catch{}}hud();}
 function parts(body){return body.parts.length>1?body.parts.slice(1):[body];}
@@ -14,7 +23,7 @@ function sensor(body,value){body.parts.forEach(p=>p.isSensor=value);}
 function pick(){if(!bag.length){bag=[0,1,2,3,4,5,6];for(let i=6;i>0;i--){let j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]];}}return bag.pop();}
 function physicalOptions(){return {friction:.72,frictionStatic:1,restitution:.06,frictionAir:.025,density:.002,sleepThreshold:100};}
 function makeBlock(type,x,y){const squares=SHAPES[type].map(([cx,cy])=>Bodies.rectangle(cx*CELL,cy*CELL,CELL,CELL,physicalOptions()));const b=Body.create({...physicalOptions(),parts:squares});Body.setPosition(b,{x,y});b.plugin={color:COLORS[type],type,released:false};return b;}
-function controlHint(){return matchMedia('(pointer:coarse)').matches?'중심은 이동 · 바깥은 회전':'드래그로 이동 · 휠로 회전';}
+function controlHint(){return !wheelEnabled||matchMedia('(pointer:coarse)').matches?'중심은 이동 · 바깥은 회전':'드래그로 이동 · 휠로 회전';}
 function spawn(){
  active=makeBlock(nextType,W/2,76);nextType=pick();active.plugin.released=true;blocks.push(active);Composite.add(engine.world,active);settleTime=dropAge=0;$('#angle').textContent='0°';
  if(Query.collides(active,blocks.filter(b=>b!==active)).some(c=>c.depth>2)){finish();return;}
@@ -37,7 +46,7 @@ canvas.addEventListener('pointerdown',e=>{
  if(paused||over||cut||!active||active.plugin.controlLocked||drag||e.button!==0)return;const p=point(e),center=active.position;
  const atCenter=Math.hypot(p.x-center.x,p.y-center.y)<12;if(!atCenter&&!Query.point([active],p).length)return;
  e.preventDefault();canvas.setPointerCapture(e.pointerId);Sleeping.set(active,false);
- const mode=e.pointerType==='mouse'?'move':gripMode(p);if(mode==='rotate')Body.setVelocity(active,{x:0,y:active.velocity.y});
+ const mode=e.pointerType==='mouse'&&wheelEnabled?'move':gripMode(p);if(mode==='rotate')Body.setVelocity(active,{x:0,y:active.velocity.y});
  drag={id:e.pointerId,mode,target:{...p},last:{...p},dx:p.x-center.x,pendingSpin:0};settleTime=dropAge=0;
  $('#hint').textContent='블록은 계속 떨어져요';
 });
@@ -67,6 +76,7 @@ function followPointer(p,wheelTurn=null){
  if(drag&&wheelTurn===null){held.last={...p};held.target={...p};}
 }
 canvas.addEventListener('wheel',e=>{
+ if(!wheelEnabled)return;
  if(paused||over||cut||!active||active.plugin.controlLocked||(drag&&drag.mode==='rotate'))return;
  e.preventDefault();if(!e.deltaY)return;
  const existing=drag,p=point(e);
@@ -145,4 +155,4 @@ function draw(){
 }
 function resize(){const dpr=Math.min(devicePixelRatio||1,3);canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);draw();}window.addEventListener('resize',resize);
 function frame(now){const delta=Math.min(.05,(now-lastFrame)/1000||0);lastFrame=now;if(!paused&&!over){accumulator+=delta;while(accumulator>=1/60){step(1/60);accumulator-=1/60;}}else accumulator=0;draw();requestAnimationFrame(frame);}
-reset();resize();requestAnimationFrame(frame);
+reset();updateControls();resize();requestAnimationFrame(frame);
