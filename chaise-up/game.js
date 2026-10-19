@@ -58,7 +58,7 @@ canvas.addEventListener('pointerdown',e=>{
 function lockControl(){
  if(!active||active.plugin.controlLocked)return;
  active.plugin.controlLocked=true;releaseGrip();settleTime=0;
- Body.setVelocity(active,{x:active.velocity.x,y:Math.max(active.velocity.y,3)});
+ settleBody(active);
  $('#hint').textContent='툭! · 1.5초 동안 멈추면 다음 블록';
 }
 function followPointer(p,wheelTurn=null){
@@ -113,7 +113,7 @@ function findBands(){
   let filled=0;for(let y=row.top+.5;y<row.bottom;y++)filled+=coverage(y,polys);
   return {...row,percent:Math.min(100,100*filled/(W*(row.bottom-row.top)))};
  });
- return rowStats.filter(row=>row.percent>=90);
+ return rowStats.filter(row=>row.percent>=90&&blocks.filter(b=>b.bounds.max.y>row.top&&b.bounds.min.y<row.bottom).every(b=>b.isStatic));
 }
 function clip(poly,y,keepAbove){const out=[];for(let i=0;i<poly.length;i++){const a=poly[i],b=poly[(i+1)%poly.length],insideA=keepAbove?a.y<=y:a.y>=y,insideB=keepAbove?b.y<=y:b.y>=y;if(insideA)out.push({x:a.x,y:a.y});if(insideA!==insideB){const t=(y-a.y)/(b.y-a.y);out.push({x:a.x+t*(b.x-a.x),y});}}return out;}
 function area(poly){return poly.length<3?0:Vertices.area(poly);}
@@ -129,30 +129,43 @@ function applyCut(bands){
  settleTime=0;scanClock=0;dangerClock=0;
 }
 function toast(text){$('#toast').textContent=text;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),1400);}
+function settleBody(body){
+ Body.setVelocity(body,{x:0,y:0});Body.setAngularVelocity(body,0);
+ Body.setStatic(body,true);body.plugin.fallSpeed=0;
+}
+function supports(body){
+ const p={...body.position};Body.translate(body,{x:0,y:.8});
+ const hits=Query.collides(body,[floorBody,...blocks.filter(b=>b!==body)]).map(c=>c.bodyA.parent===body?c.bodyB.parent:c.bodyA.parent);
+ Body.setPosition(body,p);return hits;
+}
+function advanceBlocks(dt){
+ // Only floor-connected resting blocks stay still; unsupported pieces fall again.
+ const resting=blocks.filter(b=>b.isStatic),links=new Map(resting.map(b=>[b,supports(b)])),grounded=new Set([floorBody]);
+ for(let pass=0;pass<resting.length;pass++)for(const b of resting)if(links.get(b).some(other=>grounded.has(other)))grounded.add(b);
+ for(const b of resting)if(!grounded.has(b)){Body.setStatic(b,false);b.plugin.controlLocked=true;b.plugin.fallSpeed=0;}
+ for(const body of blocks.slice().sort((a,b)=>b.bounds.max.y-a.bounds.max.y)){
+  if(body.isStatic)continue;
+  const controlled=body===active&&!body.plugin.controlLocked;
+  const speed=controlled?30:Math.min(600,(body.plugin.fallSpeed||0)+900*dt);body.plugin.fallSpeed=speed;
+  const distance=speed*dt,steps=Math.max(1,Math.ceil(distance));
+  for(let i=0;i<steps;i++){
+   const old={...body.position},dy=distance/steps;Body.translate(body,{x:0,y:dy});
+   if(Query.collides(body,[floorBody,...blocks.filter(b=>b!==body)]).length){
+    let low=0,high=dy;
+    for(let n=0;n<12;n++){const mid=(low+high)/2;Body.setPosition(body,{x:old.x,y:old.y+mid});if(Query.collides(body,[floorBody,...blocks.filter(b=>b!==body)]).length)high=mid;else low=mid;}
+    Body.setPosition(body,{x:old.x,y:old.y+low});
+    if(controlled)lockControl();else settleBody(body);
+    break;
+   }
+  }
+  if(!body.isStatic){Body.setVelocity(body,{x:0,y:speed/60});Body.setAngularVelocity(body,0);}
+ }
+}
 function step(dt){
  if(paused||over)return;
  if(cut){cutClock+=dt;if(cutClock>=.36){const bands=cut;cut=null;applyCut(bands);}return;}
  if(drag){Sleeping.set(active,false);Body.setVelocity(active,{x:0,y:active.velocity.y});Body.setAngularVelocity(active,0);}
- // Only the controllable block falls slowly. Landed blocks and cut fragments
- // retain the original gravity, including after their support disappears.
- const fallingBody=active&&!active.plugin.controlLocked?active:null;
- const previousHeight=fallingBody?.position.y;
- // Cancel gravity while controlled and compensate drag for a steady 30 px/s descent.
- if(fallingBody){
-  Sleeping.set(fallingBody,false);
-  Body.setVelocity(fallingBody,{x:fallingBody.velocity.x,y:(30/60)/(1-fallingBody.frictionAir*dt*60)});
-  Body.applyForce(fallingBody,fallingBody.position,{x:0,y:-fallingBody.mass*engine.gravity.scale});
- }
- Engine.update(engine,dt*1000);
- // Wall contacts may redirect rotation into an upward collision impulse.
- // Keep the controlled body's center descending without freezing the pile.
- if(fallingBody){
-  if(fallingBody.position.y<previousHeight)Body.translate(fallingBody,{x:0,y:previousHeight-fallingBody.position.y});
-  if(fallingBody.velocity.y<0)Body.setVelocity(fallingBody,{x:fallingBody.velocity.x,y:0});
- }
- if(active&&!active.plugin.controlLocked&&Query.collides(active,[floorBody,...blocks.filter(b=>b!==active)]).length){
-  lockControl();
- }
+ advanceBlocks(dt);
  for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;}particles=particles.filter(p=>p.life>0);
  // Require each filled band to persist for five seconds of active play.
  scanClock+=dt;
