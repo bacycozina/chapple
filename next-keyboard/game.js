@@ -83,12 +83,12 @@ const treeDepth=new Map(),treeBranch=new Map(),treePath=new Map();const mainRoot
 function describeTree(n){if(treeDepth.has(n.id))return;const parent=TREE_NODES.find(p=>p.id===n.parent);if(parent){describeTree(parent);treeDepth.set(n.id,treeDepth.get(parent.id)+1);treeBranch.set(n.id,treeBranch.get(parent.id));treePath.set(n.id,treePath.get(parent.id)+'/'+n.id)}else{treeDepth.set(n.id,0);treeBranch.set(n.id,mainRoots.indexOf(n));treePath.set(n.id,n.id)}}TREE_NODES.forEach(describeTree);
 let radius=0;for(let depth=0;depth<=Math.max(...treeDepth.values());depth++){const rows=mainRoots.map((_,branch)=>TREE_NODES.filter(n=>treeDepth.get(n.id)===depth&&treeBranch.get(n.id)===branch).sort((a,b)=>treePath.get(a.id).localeCompare(treePath.get(b.id))));radius=Math.max(depth?radius+170:150,...rows.map(row=>row.length*100/(Math.PI*.56)));rows.forEach((row,branch)=>row.forEach((n,i)=>{const angle=-Math.PI/2+branch*Math.PI*2/3+(row.length===1?0:((i+.5)/row.length-.5)*Math.PI*.56);n.x=TREE_ROOT.x+Math.cos(angle)*radius;n.y=TREE_ROOT.y+Math.sin(angle)*radius}))}
 let shopPose={x:0,y:0,scale:.8},shopInitialized=false;
-function keySound(level){return level<=1?'basic':level===2?'aurora':'whitefox'}
+function keySound(level){return level<=1?'basic':'aurora'}
 KEY_SOUNDS.basic={rate:1.35,filter:'highpass',frequency:2200,length:.09,gain:.7};
 function nodeInfo(slot,n){
  if(n.type==='unlock')return {done:specialLevel(slot,n.specialType,'chance')>0,open:(slot.treeBought||[]).includes(n.parent),cost:3,points:true,title:SPECIALS[n.specialType].name+' 해금',desc:'초기화포인트 3개로 '+SPECIALS[n.specialType].name+' 해금 · 해금 후 별도 마인드맵에서 강화'};
  if(n.type==='special')return specialNodeInfo(slot,n);
- if(n.type==='key'){const cost=keyboardCost(slot);return {cost,done:slot.level>=8,open:true,title:`키 Lv.${slot.level} → ${slot.level+1}`,desc:`체력 ${slot.level+1} → ${slot.level+2} · 보상 ${keyReward(slot.level)} → ${keyReward(slot.level+1)}원 · ${slot.level===1?"ikki68 Aurora 타건음":slot.level===2?"WhiteFox 타건음":"WhiteFox 타건음 유지"}`}}
+ if(n.type==='key'){const cost=keyboardCost(slot);return {cost,done:slot.level>=8,open:true,title:`키 Lv.${slot.level} → ${slot.level+1}`,desc:`체력 ${slot.level+1} → ${slot.level+2} · 보상 ${keyReward(slot.level)} → ${keyReward(slot.level+1)}원 · ${slot.level===1?"ikki68 Aurora 타건음":"ikki68 Aurora 타건음 유지"}`}}
  const owned=slot.treeBought||[],done=owned.includes(n.id),open=!n.parent||owned.includes(n.parent);let desc,capped=false;
  if(n.type==='damage'){capped=(slot.damageLevel||0)>=6;desc=`클릭당 ${clickDamage(slot)} → ${Math.min(7+perm(slot,'warm'),clickDamage(slot)+1)} 데미지`}
  if(n.type==='capacity'){capped=(slot.capacityLevel||0)>=3;desc=`최대 ${keyCapacity(slot)} → ${16+16*Math.min(3,(slot.capacityLevel||0)+1)}개`}
@@ -120,7 +120,3 @@ function showResult(){
 }
 
 document.addEventListener('visibilitychange',()=>{lastTick=performance.now();if(view==='board')save()});window.addEventListener('pagehide',()=>{if(view==='board')save()});home();
-
-
-
-
