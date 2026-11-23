@@ -16,6 +16,43 @@ function save(){try{const slots=data.slots.map((slot,i)=>{
  return slotCheckpoints[i];
 });localStorage.setItem(STORE,JSON.stringify({slots,settings:data.settings}));return true}catch{notify('저장 공간을 사용할 수 없어요. 브라우저 설정을 확인해주세요.');return false}}
 const audioBanks=new Map();
+
+function getAudioContext() {
+ audioContext ??= new (window.AudioContext || window.webkitAudioContext)({latencyHint: 'interactive'});
+ return audioContext;
+}
+function prepareAudio(file) {
+ if (!audioBanks.has(file)) {
+  const context = getAudioContext();
+  const loading = fetch(file)
+   .then(response => {
+    if (!response.ok) throw new Error('Audio download failed');
+    return response.arrayBuffer();
+   })
+   .then(bytes => context.decodeAudioData(bytes))
+   .catch(error => {
+    audioBanks.delete(file);
+    throw error;
+   });
+  audioBanks.set(file, loading);
+ }
+ return audioBanks.get(file);
+}
+function preloadAudio() {
+ for (const file of ['typing.mp3', 'audio/aurora.wav', 'audio/whitefox.wav']) {
+  try { void prepareAudio(file).catch(() => {}); } catch {}
+ }
+}
+function unlockAudio() {
+ try {
+  const context = getAudioContext();
+  if (context.state !== 'running') void context.resume().catch(() => {});
+ } catch {}
+}
+preloadAudio();
+document.addEventListener('pointerdown', unlockAudio, {capture: true, passive: true});
+document.addEventListener('keydown', unlockAudio, {capture: true});
+
 const KEY_SOUNDS={aurora:{file:"audio/aurora.wav",rate:1,filter:"lowpass",frequency:18000,length:.23,gain:.65},whitefox:{file:"audio/whitefox.wav",rate:1,filter:"lowpass",frequency:18000,length:.23,gain:.65},button:{rate:1.15,filter:"lowpass",frequency:3400,length:.11,gain:.5},c:{rate:1.35,filter:'highpass',frequency:1100,length:.13,gain:.65},k:{rate:.78,filter:'lowpass',frequency:1800,length:.24,gain:.85},enter:{rate:1,filter:'peaking',frequency:650,length:.3,gain:.65}};
 function keyVoice(parent,seed){
  const n=Math.abs(Math.trunc(Number(seed)||0));
@@ -24,7 +61,7 @@ function keyVoice(parent,seed){
  return {...parent,rate:parent.rate*(.7+tone*.7),length:parent.length*(.65+tail*.75),frequency:parent.frequency*(.75+tone*.5),gain:parent.gain*.85};
 }
 function buttonVoiceSeed(button){const name=button.id||button.dataset.action||button.getAttribute('aria-label')||button.textContent;let hash=0;for(const char of name)hash=(Math.imul(hash,31)+char.charCodeAt(0))>>>0;return hash;}
-async function sound(kind='k',notes=null){if(!data.settings.sound||!data.settings.volume)return;const parent={...(KEY_SOUNDS[kind]||KEY_SOUNDS.k)},file=parent.file||'typing.mp3';try{audioContext??=new(window.AudioContext||window.webkitAudioContext)();await audioContext.resume();if(!audioBanks.has(file)){audioBanks.set(file,fetch(file).then(r=>{if(!r.ok)throw Error('audio');return r.arrayBuffer()}).then(b=>audioContext.decodeAudioData(b)).catch(e=>{audioBanks.delete(file);throw e}))}const clipBuffer=await audioBanks.get(file);if(!data.settings.sound||!data.settings.volume)return;
+async function sound(kind='k',notes=null){if(!data.settings.sound||!data.settings.volume)return;const parent={...(KEY_SOUNDS[kind]||KEY_SOUNDS.k)},file=parent.file||'typing.mp3';try{const context = getAudioContext(); const clipPromise = prepareAudio(file); if (context.state !== 'running') await context.resume(); const clipBuffer = await clipPromise;if(!data.settings.sound||!data.settings.volume)return;
 const profiles=Array.isArray(notes)?notes.slice(0,48).map(seed=>keyVoice(parent,seed)):[parent.file?keyVoice(parent,Math.floor(Math.random()*8)):parent];if(!profiles.length)return;
 const voices=profiles.length,base=audioContext.currentTime+.008,mix=audioContext.createDynamicsCompressor();mix.threshold.value=-12;mix.knee.value=12;mix.ratio.value=8;mix.attack.value=.002;mix.release.value=.1;mix.connect(audioContext.destination);let remaining=voices;
 for(const profile of profiles){const source=audioContext.createBufferSource(),gain=audioContext.createGain(),filter=audioContext.createBiquadFilter(),now=base;source.buffer=clipBuffer;source.playbackRate.value=profile.rate;filter.type=profile.filter;filter.frequency.value=profile.frequency;filter.Q.value=.7;if(profile.filter==='peaking')filter.gain.value=6;const volume=data.settings.volume/100*profile.gain/Math.sqrt(voices);gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(volume,now+.003);if(profile.file){gain.gain.setValueAtTime(volume,now+profile.length/profile.rate-.015);gain.gain.linearRampToValueAtTime(0,now+profile.length/profile.rate)}else gain.gain.setTargetAtTime(0,now+profile.length*.35,profile.length*.16);source.connect(filter).connect(gain).connect(mix);source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();if(--remaining===0)mix.disconnect()};source.start(now,profile.offset??.15,profile.file?profile.length:profile.length*profile.rate)}
