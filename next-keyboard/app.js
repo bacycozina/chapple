@@ -53,7 +53,7 @@ preloadAudio();
 document.addEventListener('pointerdown', unlockAudio, {capture: true, passive: true});
 document.addEventListener('keydown', unlockAudio, {capture: true});
 
-const KEY_SOUNDS={aurora:{file:"audio/aurora.wav",rate:1,filter:"lowpass",frequency:18000,length:.23,gain:.65},whitefox:{file:"audio/whitefox.wav",rate:1,filter:"lowpass",frequency:18000,length:.23,gain:.65},button:{rate:1.15,filter:"lowpass",frequency:3400,length:.11,gain:.5},c:{rate:1.35,filter:'highpass',frequency:1100,length:.13,gain:.65},k:{rate:.78,filter:'lowpass',frequency:1800,length:.24,gain:.85},enter:{rate:1,filter:'peaking',frequency:650,length:.3,gain:.65}};
+const KEY_SOUNDS={aurora:{file:"audio/aurora.wav",rate:1,filter:"lowpass",frequency:18000,length:.23,gain:1},whitefox:{file:"audio/whitefox.wav",rate:1,filter:"lowpass",frequency:18000,length:.23,gain:.4},button:{rate:1.15,filter:"lowpass",frequency:3400,length:.11,gain:.5},c:{rate:1.35,filter:'highpass',frequency:1100,length:.13,gain:.65},k:{rate:.78,filter:'lowpass',frequency:1800,length:.24,gain:.85},enter:{rate:1,filter:'peaking',frequency:650,length:.3,gain:.65}};
 function keyVoice(parent,seed){
  const n=Math.abs(Math.trunc(Number(seed)||0));
  const tone=((n*17+11)%97)/96,tail=((n*43+7)%89)/88;
